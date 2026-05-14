@@ -237,4 +237,118 @@ final class PortSummaryThunderboltTests: XCTestCase {
             "TB5 should no longer be hedged; got: \(summary.bullets)"
         )
     }
+
+    // MARK: - Passive e-marker + active TB link (issue #111)
+
+    /// TB4 cables from CalDigit/Cable Matters report as passive in USB-PD
+    /// because their active components condition the Thunderbolt signal path,
+    /// not the USB path. When the TB link is live and the e-marker says
+    /// passive, PortSummary should add a clarifying note.
+    private func passiveCableIdentity() -> PDIdentity {
+        // ID Header VDO[0]: ufpProductType = 3 (passiveCable), VID = 0x2B1D
+        let idHeader: UInt32 = (3 << 27) | 0x2B1D
+        // Cable VDO[3]: USB 3.2 Gen 2 (speed=2), 5A current (bits 5..6 = 2),
+        // latency = 1 (bits 13..16)
+        let cableVDO: UInt32 = 0b010 | (2 << 5) | (1 << 13)
+        return PDIdentity(
+            id: 99, endpoint: .sopPrime,
+            parentPortType: 0, parentPortNumber: 0,
+            vendorID: 0x2B1D, productID: 0x1901, bcdDevice: 0,
+            vdos: [idHeader, 0, 0, cableVDO],
+            specRevision: 3
+        )
+    }
+
+    func testPassiveEmarkerWithActiveTBLinkShowsClarification() {
+        let port = tbPort(socket: "1")
+        let host = sw(
+            uid: 100, depth: 0, parent: nil,
+            vendor: "Apple Inc.", model: "iOS",
+            ports: [lanePort(portNumber: 1, socketID: "1", speed: .usb4Tb4, widthRaw: 0x2)]
+        )
+        let cable = passiveCableIdentity()
+
+        let summary = PortSummary(
+            port: port,
+            identities: [cable],
+            thunderboltSwitches: [host]
+        )
+
+        XCTAssertTrue(
+            summary.bullets.contains { $0.contains("E-marker reports passive") && $0.contains("Thunderbolt") },
+            "expected passive-but-TB clarification bullet; got: \(summary.bullets)"
+        )
+    }
+
+    func testPassiveEmarkerWithoutTBLinkDoesNotShowClarification() {
+        let port = USBCPort(
+            id: 1,
+            serviceName: "Port-USB-C@1",
+            className: "AppleHPMInterfaceType10",
+            portDescription: "Port-USB-C@1",
+            portTypeDescription: "USB-C",
+            portNumber: 1,
+            connectionActive: true,
+            activeCable: nil,
+            opticalCable: nil,
+            usbActive: nil,
+            superSpeedActive: true,
+            usbModeType: nil,
+            usbConnectString: nil,
+            transportsSupported: ["CC", "USB2", "USB3"],
+            transportsActive: ["USB3"],
+            transportsProvisioned: [],
+            plugOrientation: nil,
+            plugEventCount: nil,
+            connectionCount: nil,
+            overcurrentCount: nil,
+            pinConfiguration: [:],
+            powerCurrentLimits: [],
+            firmwareVersion: nil,
+            bootFlagsHex: nil,
+            rawProperties: [:]
+        )
+        let cable = passiveCableIdentity()
+
+        let summary = PortSummary(port: port, identities: [cable])
+
+        XCTAssertFalse(
+            summary.bullets.contains { $0.contains("E-marker reports passive") },
+            "passive cable on non-TB port should not show TB clarification; got: \(summary.bullets)"
+        )
+    }
+
+    func testActiveCableWithTBLinkDoesNotShowPassiveNote() {
+        let port = tbPort(socket: "1")
+        let host = sw(
+            uid: 100, depth: 0, parent: nil,
+            vendor: "Apple Inc.", model: "iOS",
+            ports: [lanePort(portNumber: 1, socketID: "1", speed: .usb4Tb4, widthRaw: 0x2)]
+        )
+        // ID Header VDO[0]: ufpProductType = 4 (activeCable)
+        let idHeader: UInt32 = (4 << 27) | 0x05AC
+        let cableVDO: UInt32 = 0b011 | (2 << 5) | (1 << 13)
+        let cable = PDIdentity(
+            id: 99, endpoint: .sopPrime,
+            parentPortType: 0, parentPortNumber: 0,
+            vendorID: 0x05AC, productID: 0, bcdDevice: 0,
+            vdos: [idHeader, 0, 0, cableVDO],
+            specRevision: 3
+        )
+
+        let summary = PortSummary(
+            port: port,
+            identities: [cable],
+            thunderboltSwitches: [host]
+        )
+
+        XCTAssertFalse(
+            summary.bullets.contains { $0.contains("E-marker reports passive") },
+            "active cable should not show passive note; got: \(summary.bullets)"
+        )
+        XCTAssertTrue(
+            summary.bullets.contains { $0.contains("Active cable") },
+            "active cable should show active label; got: \(summary.bullets)"
+        )
+    }
 }

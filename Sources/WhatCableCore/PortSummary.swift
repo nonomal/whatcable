@@ -210,6 +210,8 @@ extension PortSummary {
                 } else {
                     bullets.append(String(localized: "Active cable (contains signal-conditioning electronics)", bundle: _coreLocalizedBundle))
                 }
+            } else if cv.cableType == .passive && hasTB {
+                bullets.append(String(localized: "E-marker reports passive (no USB signal conditioning). Thunderbolt is negotiated separately by the controller.", bundle: _coreLocalizedBundle))
             }
         }
 
