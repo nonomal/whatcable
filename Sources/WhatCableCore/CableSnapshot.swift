@@ -100,6 +100,10 @@ public struct CableSnapshot: Equatable {
     /// only while an accessory is connected; the IOKit transport services
     /// appear and disappear dynamically with plug/unplug events.
     public let trmTransports: [TRMTransport]
+    /// CIO cable capability data from the Thunderbolt transport controller.
+    /// Independent of USB-PD e-marker data. Present only while a
+    /// Thunderbolt link is active.
+    public let cioCapabilities: [CIOCableCapability]
 
     public init(
         ports: [USBCPort],
@@ -111,7 +115,8 @@ public struct CableSnapshot: Equatable {
         isDesktopMac: Bool = false,
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
-        trmTransports: [TRMTransport] = []
+        trmTransports: [TRMTransport] = [],
+        cioCapabilities: [CIOCableCapability] = []
     ) {
         self.ports = ports
         self.powerSources = powerSources
@@ -123,6 +128,7 @@ public struct CableSnapshot: Equatable {
         self.federatedIdentities = federatedIdentities
         self.usb3Transports = usb3Transports
         self.trmTransports = trmTransports
+        self.cioCapabilities = cioCapabilities
     }
 }
 

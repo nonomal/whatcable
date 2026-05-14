@@ -11,7 +11,8 @@ public enum JSONFormatter {
         isDesktopMac: Bool = false,
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
-        trmTransports: [TRMTransport] = []
+        trmTransports: [TRMTransport] = [],
+        cioCapabilities: [CIOCableCapability] = []
     ) throws -> String {
         let output = Output(
             version: AppInfo.version,
@@ -27,7 +28,8 @@ public enum JSONFormatter {
                     adapter: adapter,
                     federatedIdentities: federatedIdentities,
                     usb3Transports: usb3Transports.filter { $0.portKey == port.portKey },
-                    trmTransports: trmTransports.filter { $0.portKey == port.portKey }
+                    trmTransports: trmTransports.filter { $0.portKey == port.portKey },
+                    cioCapability: cioCapabilities.first { $0.portKey == port.portKey }
                 )
             },
             thunderboltSwitches: thunderboltSwitches.map { ThunderboltSwitchDTO(sw: $0) }
@@ -77,6 +79,9 @@ private struct PortDTO: Codable {
     /// Per-transport TRM state for this port. Nil when no TRM data is
     /// available (nothing connected, or TRM not active on this port).
     let trm: [TRMTransportDTO]?
+    /// CIO cable capability from the Thunderbolt transport controller.
+    /// Independent of the USB-PD e-marker. Nil when no TB link is active.
+    let cio: CIOCableCapabilityDTO?
     let rawProperties: [String: String]?
 
     init(
@@ -88,7 +93,8 @@ private struct PortDTO: Codable {
         adapter: AdapterInfo?,
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
-        trmTransports: [TRMTransport] = []
+        trmTransports: [TRMTransport] = [],
+        cioCapability: CIOCableCapability? = nil
     ) {
         self.name = port.portDescription ?? port.serviceName
         self.type = port.portTypeDescription
@@ -139,6 +145,7 @@ private struct PortDTO: Codable {
             .map { ChargingDTO(diagnostic: $0) }
 
         self.trm = trmTransports.isEmpty ? nil : trmTransports.map { TRMTransportDTO(transport: $0) }
+        self.cio = cioCapability.map { CIOCableCapabilityDTO(capability: $0) }
 
         self.rawProperties = showRaw ? port.rawProperties : nil
     }
@@ -416,6 +423,24 @@ private struct TRMTransportDTO: Codable {
         self.profile = transport.profile
         self.profileDescription = transport.profileDescription
         self.cacheMiss = transport.cacheMiss
+    }
+}
+
+private struct CIOCableCapabilityDTO: Codable {
+    let cableGeneration: Int?
+    let cableSpeed: Int?
+    let generation: Int?
+    let asymmetricModeSupported: Bool?
+    let legacyAdapter: Bool?
+    let linkTrainingMode: Int?
+
+    init(capability: CIOCableCapability) {
+        self.cableGeneration = capability.cableGeneration
+        self.cableSpeed = capability.cableSpeed
+        self.generation = capability.generation
+        self.asymmetricModeSupported = capability.asymmetricModeSupported
+        self.legacyAdapter = capability.legacyAdapter
+        self.linkTrainingMode = capability.linkTrainingMode
     }
 }
 

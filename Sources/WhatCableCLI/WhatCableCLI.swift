@@ -105,7 +105,8 @@ private func printSnapshot(_ snapshot: CableSnapshot, asJSON: Bool, showRaw: Boo
             isDesktopMac: snapshot.isDesktopMac,
             federatedIdentities: snapshot.federatedIdentities,
             usb3Transports: snapshot.usb3Transports,
-            trmTransports: snapshot.trmTransports
+            trmTransports: snapshot.trmTransports,
+            cioCapabilities: snapshot.cioCapabilities
         )
         print(json)
     } else {
@@ -169,7 +170,8 @@ private func consumeWatchStream(provider: any CableSnapshotProvider, asJSON: Boo
                         isDesktopMac: snapshot.isDesktopMac,
                         federatedIdentities: snapshot.federatedIdentities,
                         usb3Transports: snapshot.usb3Transports,
-                        trmTransports: snapshot.trmTransports
+                        trmTransports: snapshot.trmTransports,
+                        cioCapabilities: snapshot.cioCapabilities
                     )
                 } catch {
                     FileHandle.standardError.write(Data("whatcable: json encoding failed: \(error)\n".utf8))

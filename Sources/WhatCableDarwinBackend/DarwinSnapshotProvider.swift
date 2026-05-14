@@ -56,7 +56,8 @@ public final class DarwinSnapshotProvider: CableSnapshotProvider, @unchecked Sen
                 isDesktopMac: battery.isDesktopMac,
                 federatedIdentities: battery.federatedIdentities,
                 usb3Transports: usb3Watcher.transports,
-                trmTransports: trmWatcher.transports
+                trmTransports: trmWatcher.transports,
+                cioCapabilities: trmWatcher.cioCapabilities
             )
         }
     }
