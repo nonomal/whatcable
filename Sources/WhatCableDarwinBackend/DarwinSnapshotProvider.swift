@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 import WhatCableCore
 
 /// macOS implementation of `CableSnapshotProvider`. Wraps the four IOKit
@@ -11,6 +12,8 @@ import WhatCableCore
 /// property-change events; the others share the same loop for simplicity.
 public final class DarwinSnapshotProvider: CableSnapshotProvider, @unchecked Sendable {
     public init() {}
+
+    private static let log = Logger(subsystem: "uk.whatcable.whatcable", category: "charging")
 
     @MainActor
     private final class State {
@@ -46,7 +49,7 @@ public final class DarwinSnapshotProvider: CableSnapshotProvider, @unchecked Sen
             usb3Watcher.refresh()
             trmWatcher.refresh()
             let battery = SmartBatteryReader.read()
-            return CableSnapshot(
+            let snap = CableSnapshot(
                 ports: portWatcher.ports,
                 powerSources: powerWatcher.sources,
                 identities: pdWatcher.identities,
@@ -59,6 +62,8 @@ public final class DarwinSnapshotProvider: CableSnapshotProvider, @unchecked Sen
                 trmTransports: trmWatcher.transports,
                 cioCapabilities: trmWatcher.cioCapabilities
             )
+            DarwinSnapshotProvider.logChargingSignals(snap)
+            return snap
         }
     }
 
@@ -69,6 +74,28 @@ public final class DarwinSnapshotProvider: CableSnapshotProvider, @unchecked Sen
     public func snapshot() async throws -> CableSnapshot {
         Self.state.ensureStarted()
         return Self.state.read()
+    }
+
+    private static func logChargingSignals(_ snap: CableSnapshot) {
+        let activePorts = snap.ports.filter { $0.connectionActive == true }
+        let adapterW = snap.adapter?.watts.map(String.init) ?? "none"
+        log.debug(
+            """
+            charging signals: \(snap.ports.count) ports, \
+            \(activePorts.count) active, \
+            adapter \(adapterW)W
+            """
+        )
+        for port in activePorts {
+            guard let key = port.portKey else { continue }
+            let sources = snap.powerSources.filter { $0.portKey == key }
+            let names = sources.map { src -> String in
+                let w = Int((Double(src.maxPowerMW) / 1000).rounded())
+                return "\(src.name)(\(w)W)"
+            }
+            let label = port.portDescription ?? port.serviceName
+            log.debug("  port \(label): sources=[\(names.joined(separator: ", "))]")
+        }
     }
 
     public func watch() -> AsyncThrowingStream<CableSnapshot, Error> {

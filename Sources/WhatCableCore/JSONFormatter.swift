@@ -14,14 +14,21 @@ public enum JSONFormatter {
         trmTransports: [TRMTransport] = [],
         cioCapabilities: [CIOCableCapability] = []
     ) throws -> String {
+        let activePortCount = ports.filter { $0.connectionActive == true }.count
         let output = Output(
             version: AppInfo.version,
             isDesktopMac: isDesktopMac,
             adapter: adapter.map { AdapterDTO(adapter: $0) },
             ports: ports.map { port in
-                PortDTO(
+                let portSources = sources.filter { $0.portKey == port.portKey }
+                let wattageSource = ChargerWattageSource.resolve(
+                    portSources: portSources,
+                    activePortCount: activePortCount,
+                    adapter: adapter
+                )
+                return PortDTO(
                     port: port,
-                    sources: sources.filter { $0.portKey == port.portKey },
+                    sources: portSources,
                     identities: identities.filter { $0.portKey == port.portKey },
                     thunderboltSwitches: thunderboltSwitches,
                     showRaw: showRaw,
@@ -29,7 +36,8 @@ public enum JSONFormatter {
                     federatedIdentities: federatedIdentities,
                     usb3Transports: usb3Transports.filter { $0.portKey == port.portKey },
                     trmTransports: trmTransports.filter { $0.portKey == port.portKey },
-                    cioCapability: cioCapabilities.first { $0.portKey == port.portKey }
+                    cioCapability: cioCapabilities.first { $0.portKey == port.portKey },
+                    chargerWattageSource: wattageSource
                 )
             },
             thunderboltSwitches: thunderboltSwitches.map { ThunderboltSwitchDTO(sw: $0) }
@@ -94,7 +102,8 @@ private struct PortDTO: Codable {
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
         trmTransports: [TRMTransport] = [],
-        cioCapability: CIOCableCapability? = nil
+        cioCapability: CIOCableCapability? = nil,
+        chargerWattageSource: ChargerWattageSource = .unknown
     ) {
         self.name = port.portDescription ?? port.serviceName
         self.type = port.portTypeDescription
@@ -109,7 +118,8 @@ private struct PortDTO: Codable {
             thunderboltSwitches: thunderboltSwitches,
             federatedIdentities: federatedIdentities,
             usb3Transports: usb3Transports,
-            cioCapability: cioCapability
+            cioCapability: cioCapability,
+            chargerWattageSource: chargerWattageSource
         )
         self.status = String(describing: summary.status)
         self.headline = summary.headline
@@ -142,7 +152,7 @@ private struct PortDTO: Codable {
         let partner = identities.first { $0.endpoint == .sop }
         self.device = partner.map { DeviceDTO(identity: $0) }
 
-        self.charging = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter)
+        self.charging = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter, wattageSource: chargerWattageSource)
             .map { ChargingDTO(diagnostic: $0) }
 
         self.trm = trmTransports.isEmpty ? nil : trmTransports.map { TRMTransportDTO(transport: $0) }

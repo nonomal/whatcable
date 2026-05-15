@@ -335,4 +335,66 @@ final class ChargingDiagnosticTests: XCTestCase {
         }
         XCTAssertEqual(n, 96)
     }
+
+    // MARK: - System adapter fallback (issue #141)
+
+    func testSystemAdapterFallbackShowsWattage() {
+        // Issue #141: TB dock delivers power but only registers a Brick ID
+        // source with no PDOs. With a single active port and a system
+        // adapter reading, the fallback should produce a diagnostic.
+        let wattageSource = ChargerWattageSource.resolve(
+            portSources: [brickIDWithoutPDOs()],
+            activePortCount: 1,
+            adapter: AdapterInfo(watts: 96, isCharging: nil, source: "AC")
+        )
+        XCTAssertEqual(wattageSource, .systemAdapterFallback(watts: 96))
+
+        let diag = ChargingDiagnostic(
+            port: port,
+            sources: [brickIDWithoutPDOs()],
+            identities: [],
+            wattageSource: wattageSource
+        )
+        guard case .chargerLimit(let w) = diag?.bottleneck else {
+            return XCTFail("expected .chargerLimit from adapter fallback, got \(String(describing: diag?.bottleneck))")
+        }
+        XCTAssertEqual(w, 96)
+        XCTAssertEqual(diag?.summary, "System reports charger at 96W")
+    }
+
+    func testSystemAdapterFallbackBlockedWhenUSBPDPresent() {
+        // Issue #46 regression: a USB-PD source exists (even with no
+        // options), so the resolver must not fall back to the system
+        // adapter. The USB-PD source owns this port's wattage.
+        let bareUSBPD = PowerSource(
+            id: 1, name: "USB-PD", parentPortType: 2, parentPortNumber: 1,
+            options: [], winning: nil
+        )
+        let wattageSource = ChargerWattageSource.resolve(
+            portSources: [bareUSBPD],
+            activePortCount: 1,
+            adapter: AdapterInfo(watts: 87, isCharging: nil, source: "AC")
+        )
+        XCTAssertEqual(wattageSource, .unknown)
+    }
+
+    func testSystemAdapterFallbackBlockedWhenMultiplePortsActive() {
+        // Two active ports, both with Brick ID only. We can't tell which
+        // port the system adapter reading belongs to.
+        let wattageSource = ChargerWattageSource.resolve(
+            portSources: [brickIDWithoutPDOs()],
+            activePortCount: 2,
+            adapter: AdapterInfo(watts: 96, isCharging: nil, source: "AC")
+        )
+        XCTAssertEqual(wattageSource, .unknown)
+    }
+
+    func testResolverReturnsPortNegotiatedForNormalUSBPD() {
+        let wattageSource = ChargerWattageSource.resolve(
+            portSources: [usbPD(maxW: 96, winningW: 96)],
+            activePortCount: 1,
+            adapter: nil
+        )
+        XCTAssertEqual(wattageSource, .portNegotiated(watts: 96))
+    }
 }

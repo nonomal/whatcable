@@ -28,19 +28,11 @@ extension ChargingDiagnostic {
         port: USBCPort,
         sources: [PowerSource],
         identities: [PDIdentity],
-        adapter: AdapterInfo? = nil
+        adapter: AdapterInfo? = nil,
+        wattageSource: ChargerWattageSource = .unknown
     ) {
-        // `adapter` is retained for API compatibility but intentionally unused.
-        // Earlier versions used `IOPSCopyExternalPowerAdapterDetails().Watts`
-        // as a fallback when the per-port USB-PD source had no winning PDO.
-        // That value is system-wide, so on a Mac with two ports each carrying
-        // a different charger (e.g. an 87W adapter on @1 and a 30W power bank
-        // on @2), the adapter watts for @1 leaked into @2's diagnostic and
-        // claimed "Charging well at 87W" on the 30W port. See issue #46.
-        _ = adapter
-
         guard let source = PowerSource.preferredChargingSource(in: sources) else {
-            return nil // No USB-PD or MagSafe Brick ID source on this port.
+            return nil
         }
         // MagSafe (and at least some USB-C ports) keep the last negotiated
         // PDO around as cached data even after the charger is unplugged, so
@@ -49,13 +41,26 @@ extension ChargingDiagnostic {
         // the PowerSource node alone.
         guard port.connectionActive == true else { return nil }
 
-        let chargerMaxW = Int((Double(source.maxPowerMW) / 1000).rounded())
+        // Adapter wattage resolution moved to ChargerWattageSource.resolve;
+        // parameter kept for API compatibility.
+        _ = adapter
+
+        let chargerMaxW: Int
+        let isAdapterFallback: Bool
+        switch wattageSource {
+        case .portNegotiated(let w):
+            chargerMaxW = w
+            isAdapterFallback = false
+        case .systemAdapterFallback(let w):
+            chargerMaxW = w
+            isAdapterFallback = true
+        case .unknown:
+            chargerMaxW = Int((Double(source.maxPowerMW) / 1000).rounded())
+            isAdapterFallback = false
+        }
+
         let negotiatedW = source.winning.map { Int((Double($0.maxPowerMW) / 1000).rounded()) }
 
-        // No real per-port wattage to report. Don't fabricate one from
-        // system-wide signals, and don't render "Charging well at 0W" if a
-        // winning PDO rounds to zero. The charging block simply doesn't
-        // appear for this port.
         if chargerMaxW <= 0 && (negotiatedW ?? 0) <= 0 {
             return nil
         }
@@ -81,6 +86,10 @@ extension ChargingDiagnostic {
             self.bottleneck = .fine(negotiatedW: n)
             self.summary = String(localized: "Charging well at \(n)W", bundle: _coreLocalizedBundle)
             self.detail = String(localized: "Charger and cable are well-matched.", bundle: _coreLocalizedBundle)
+        } else if isAdapterFallback {
+            self.bottleneck = .chargerLimit(chargerW: chargerMaxW)
+            self.summary = String(localized: "System reports charger at \(chargerMaxW)W", bundle: _coreLocalizedBundle)
+            self.detail = String(localized: "Per-port negotiation data is not available. Wattage is from the system-wide adapter reading.", bundle: _coreLocalizedBundle)
         } else {
             self.bottleneck = .chargerLimit(chargerW: chargerMaxW)
             self.summary = String(localized: "Charger advertises up to \(chargerMaxW)W", bundle: _coreLocalizedBundle)

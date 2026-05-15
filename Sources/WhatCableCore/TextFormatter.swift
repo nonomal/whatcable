@@ -21,18 +21,26 @@ public enum TextFormatter {
         if isDesktopMac {
             out += ANSI.wrap(ANSI.dim, "Desktop Mac: charger identity (FedDetails) is not available (no battery controller).") + "\n\n"
         }
+        let activePortCount = ports.filter { $0.connectionActive == true }.count
         for (i, port) in ports.enumerated() {
             if i > 0 { out += "\n" }
+            let portSources = filterSources(port, all: sources)
+            let wattageSource = ChargerWattageSource.resolve(
+                portSources: portSources,
+                activePortCount: activePortCount,
+                adapter: adapter
+            )
             out += renderPort(
                 port,
-                sources: filterSources(port, all: sources),
+                sources: portSources,
                 identities: filterIdentities(port, all: identities),
                 showRaw: showRaw,
                 adapter: adapter,
                 thunderboltSwitches: thunderboltSwitches,
                 federatedIdentities: federatedIdentities,
                 usb3Transports: usb3Transports.filter { $0.portKey == port.portKey },
-                cioCapability: cioCapabilities.first { $0.portKey == port.portKey }
+                cioCapability: cioCapabilities.first { $0.portKey == port.portKey },
+                chargerWattageSource: wattageSource
             )
         }
         return out
@@ -47,7 +55,8 @@ public enum TextFormatter {
         thunderboltSwitches: [ThunderboltSwitch],
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
-        cioCapability: CIOCableCapability? = nil
+        cioCapability: CIOCableCapability? = nil,
+        chargerWattageSource: ChargerWattageSource = .unknown
     ) -> String {
         let summary = PortSummary(
             port: port,
@@ -56,7 +65,8 @@ public enum TextFormatter {
             thunderboltSwitches: thunderboltSwitches,
             federatedIdentities: federatedIdentities,
             usb3Transports: usb3Transports,
-            cioCapability: cioCapability
+            cioCapability: cioCapability,
+            chargerWattageSource: chargerWattageSource
         )
         let label = port.portDescription ?? port.serviceName
         let typeSuffix = port.portTypeDescription.map { " (\($0))" } ?? ""
@@ -75,7 +85,7 @@ public enum TextFormatter {
             }
         }
 
-        if let diag = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter) {
+        if let diag = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter, wattageSource: chargerWattageSource) {
             let diagColor = diag.isWarning ? ANSI.yellow : ANSI.green
             out += "\n" + ANSI.wrap(ANSI.bold, String(localized: "Charging: ", bundle: _coreLocalizedBundle)) + ANSI.wrap(diagColor, diag.summary) + "\n"
             out += "  " + ANSI.wrap(ANSI.dim, diag.detail) + "\n"

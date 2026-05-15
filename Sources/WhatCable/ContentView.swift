@@ -199,19 +199,28 @@ struct ContentView: View {
                     nothingConnectedState
                 }
             } else {
+                let activePortCount = portWatcher.ports.filter { $0.connectionActive == true }.count
+                let adapter = SystemPower.currentAdapter()
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(visiblePorts) { port in
+                            let portSources = powerWatcher.sources(for: port)
+                            let wattageSource = ChargerWattageSource.resolve(
+                                portSources: portSources,
+                                activePortCount: activePortCount,
+                                adapter: adapter
+                            )
                             PortCard(
                                 port: port,
                                 devices: matchingDevices(for: port),
-                                powerSources: powerWatcher.sources(for: port),
+                                powerSources: portSources,
                                 identities: pdWatcher.identities(for: port),
                                 thunderboltSwitches: tbWatcher.switches,
                                 usb3Transports: usb3Watcher.transports(for: port),
                                 isLive: isPortLive(port),
                                 showAdvanced: showAdvanced,
-                                cioCapability: trmWatcher.cioCapabilities.first { $0.portKey == port.portKey }
+                                cioCapability: trmWatcher.cioCapabilities.first { $0.portKey == port.portKey },
+                                chargerWattageSource: wattageSource
                             )
                         }
                     }
@@ -433,6 +442,7 @@ struct PortCard: View {
     let isLive: Bool
     let showAdvanced: Bool
     let cioCapability: CIOCableCapability?
+    let chargerWattageSource: ChargerWattageSource
 
     @State private var reportingCable: PDIdentity?
 
@@ -445,7 +455,8 @@ struct PortCard: View {
             thunderboltSwitches: thunderboltSwitches,
             usb3Transports: usb3Transports,
             cioCapability: cioCapability,
-            isConnectedOverride: isLive
+            isConnectedOverride: isLive,
+            chargerWattageSource: chargerWattageSource
         )
     }
 
@@ -522,7 +533,7 @@ struct PortCard: View {
                 .padding(.leading, 48)
             }
 
-            if let diag = ChargingDiagnostic(port: port, sources: powerSources, identities: identities) {
+            if let diag = ChargingDiagnostic(port: port, sources: powerSources, identities: identities, wattageSource: chargerWattageSource) {
                 DiagnosticBanner(diagnostic: diag)
                     .padding(.leading, 48)
             }

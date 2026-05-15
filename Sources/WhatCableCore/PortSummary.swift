@@ -42,7 +42,8 @@ extension PortSummary {
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
         cioCapability: CIOCableCapability? = nil,
-        isConnectedOverride: Bool? = nil
+        isConnectedOverride: Bool? = nil,
+        chargerWattageSource: ChargerWattageSource = .unknown
     ) {
         let connected = isConnectedOverride ?? (port.connectionActive == true)
         let active = port.transportsActive
@@ -251,10 +252,17 @@ extension PortSummary {
 
         // Power summary from PD or MagSafe power sources.
         if let chargingSource {
-            let maxW = Int((Double(chargingSource.maxPowerMW) / 1000).rounded())
-            let hasOptions = !chargingSource.options.isEmpty
-            if hasOptions && maxW > 0 {
-                bullets.append(String(localized: "Charger advertises up to \(maxW)W", bundle: _coreLocalizedBundle))
+            switch chargerWattageSource {
+            case .portNegotiated(let w) where w > 0:
+                bullets.append(String(localized: "Charger advertises up to \(w)W", bundle: _coreLocalizedBundle))
+            case .systemAdapterFallback(let w):
+                bullets.append(String(localized: "System reports charger at \(w)W", bundle: _coreLocalizedBundle))
+            default:
+                let maxW = Int((Double(chargingSource.maxPowerMW) / 1000).rounded())
+                let hasOptions = !chargingSource.options.isEmpty
+                if hasOptions && maxW > 0 {
+                    bullets.append(String(localized: "Charger advertises up to \(maxW)W", bundle: _coreLocalizedBundle))
+                }
             }
             if let win = chargingSource.winning {
                 let volts = win.voltsLabel
@@ -264,10 +272,10 @@ extension PortSummary {
             }
         }
 
-        // Headline + status
-        // Only show a wattage suffix if we have a real number (>0 and we have
-        // options, not just the winning PDO).
+        // Headline wattage: prefer the resolved source, fall back to
+        // the per-port PD options for callers that don't pass a source.
         let chargerW: Int? = {
+            if let w = chargerWattageSource.watts, w > 0 { return w }
             guard let chargingSource, !chargingSource.options.isEmpty else { return nil }
             let w = Int((Double(chargingSource.maxPowerMW) / 1000).rounded())
             return w > 0 ? w : nil
