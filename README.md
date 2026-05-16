@@ -2,6 +2,8 @@
 
 > **What can this USB-C cable actually do?**
 
+**Website: [whatcable.uk](https://whatcable.uk)** (overview, screenshots, and CLI docs)
+
 A small macOS menu bar app that tells you, in plain English, what each USB-C cable plugged into your Mac can actually do, and **why your Mac might be charging slowly**.
 
 USB-C hides a lot under one connector. Anything from a USB 2.0 charge-only cable to a 240W / 40 Gbps Thunderbolt 4 cable, all looking identical in your drawer. macOS already exposes the relevant info via IOKit; WhatCable surfaces it as a friendly menu bar popover.
@@ -9,6 +11,7 @@ USB-C hides a lot under one connector. Anything from a USB 2.0 charge-only cable
 [![Latest release](https://img.shields.io/github/v/release/darrylmorley/whatcable)](https://github.com/darrylmorley/whatcable/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue)](https://github.com/darrylmorley/whatcable)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![WhatCable Pro](https://img.shields.io/badge/WhatCable%20Pro-%C2%A34.99-orange)](https://whatcable.uk/pro)
 
 ![WhatCable popover](docs/screenshot.webp)
 
@@ -47,6 +50,8 @@ Right-click the menu bar icon for **Refresh**, a **Keep window open** toggle (ha
 
 WhatCable is free and open source. If you find it useful, you can support the project by picking up [WhatCable Pro](https://whatcable.uk/pro), which unlocks a ton of extra features: live power metering, PD contract inspection, port health counters, pin diagrams, cable resistance estimation, liquid detection status, and a dedicated power monitor window. One-time purchase, works on up to 2 Macs.
 
+[![Buy WhatCable Pro](https://img.shields.io/badge/Buy%20WhatCable%20Pro-%C2%A34.99-orange?style=for-the-badge)](https://whatcable.uk/pro)
+
 ## Install
 
 Visit [whatcable.uk](https://whatcable.uk) for an overview and screenshots, or install directly below.
@@ -54,6 +59,8 @@ Visit [whatcable.uk](https://whatcable.uk) for an overview and screenshots, or i
 Download the latest `WhatCable.zip` from the [Releases page](https://github.com/darrylmorley/whatcable/releases/latest), unzip, and drag `WhatCable.app` to `/Applications`.
 
 The app is signed with a Developer ID and notarised by Apple, so there are no Gatekeeper warnings.
+
+It's not on the Mac App Store on purpose: App Sandbox blocks the low-level IOKit reads WhatCable depends on, so it ships signed and notarised outside the store instead.
 
 Requires macOS 14 (Sonoma) or later, Apple Silicon only. On Intel Macs, the USB-C ports are driven by Intel Titan Ridge / JHL9580 Thunderbolt 3 controllers, and the USB-PD state and cable e-marker data WhatCable depends on are not exposed through any public IOKit accessor.
 
@@ -71,6 +78,22 @@ This installs the menu bar app and symlinks the `whatcable` CLI into your PATH.
 ## Command-line interface
 
 A `whatcable` binary ships alongside the menu bar app, driven by the same diagnostic engine:
+
+```text
+$ whatcable
+
+USB-C Port 1
+  ✓ Charging well at 96W
+  Cable: 5A, 100W, USB4 40 Gbps
+  Charger: 5V / 9V / 15V / 20V PDOs
+
+USB-C Port 2
+  ! Cable is limiting charging speed
+  Cable: 3A, 60W, USB 2.0
+  Device: External SSD, USB 10 Gbps
+```
+
+Flags:
 
 ```bash
 whatcable                # human-readable summary of every port
