@@ -211,7 +211,24 @@ final class TestKitRunner: ObservableObject {
     }
 
     static func probesDirectory() -> URL? {
-        Bundle.main.resourceURL?.appendingPathComponent("probes")
+        let fm = FileManager.default
+
+        if let bundlePath = Bundle.main.resourceURL?.appendingPathComponent("probes"),
+           fm.fileExists(atPath: bundlePath.path) {
+            return bundlePath
+        }
+
+        let execURL = URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
+            .resolvingSymlinksInPath()
+        let contentsDir = execURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let fallback = contentsDir.appendingPathComponent("Resources/probes")
+        if fm.fileExists(atPath: fallback.path) {
+            return fallback
+        }
+
+        return nil
     }
 
     nonisolated static func machineID() -> String {
