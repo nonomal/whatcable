@@ -360,7 +360,7 @@ brew install --cask whatcable</pre>
           Each card shows, in plain English:
         </p>
         <ul>
-          <li><strong>Headline:</strong> Thunderbolt / USB4, USB device, Charging only, Slow USB / charge-only cable, or Nothing connected.</li>
+          <li><strong>Headline:</strong> Thunderbolt / USB4, USB-C with video, Display connected, USB device, Slow USB device or charge-only cable, Charging, Plugged in &middot; battery full, or Nothing connected. When a charger is attached, the headline gains a <em>&middot; NW charger</em> suffix, plus <em>&middot; NW cable</em> when the cable is the bottleneck.</li>
           <li><strong>Charging diagnostic:</strong> whether the cable, charger, or Mac is the bottleneck, with the negotiated wattage.</li>
           <li><strong>Data-speed diagnostic:</strong> a plain-English verdict on what is limiting the link, the Mac port, the cable, or the device, so you know whether a faster cable would actually help.</li>
           <li><strong>Cable e-marker info:</strong> the cable's actual speed (USB 2.0 up to 80 Gbps), current rating (3A or 5A), and the e-marker chip vendor.</li>
@@ -383,6 +383,7 @@ brew install --cask whatcable</pre>
           <li><strong>"Charging well at 96W"</strong> means the cable, charger, and Mac are all matched. You are getting the best charge rate this setup can deliver.</li>
           <li><strong>"Cable is limiting charging speed"</strong> means the cable is rated below what the charger can deliver. A 3A cable on a 100W charger will cap you at 60W.</li>
           <li><strong>"Charging at 30W (charger can do up to 96W)"</strong> means the Mac is drawing less than the charger offers. This is normal when the battery is nearly full, or the Mac is asleep.</li>
+          <li><strong>"Battery full, not charging"</strong> means the Mac is plugged in but isn't drawing power because the battery is at 100%. macOS does this on purpose to reduce wear.</li>
         </ul>
         <p>
           The charger PDO list shows every voltage profile the charger advertises. The active one is highlighted. This helps you confirm whether your charger actually supports the wattage it claims on the box.
@@ -417,8 +418,12 @@ brew install --cask whatcable</pre>
         <ul>
           <li><strong>Refresh:</strong> re-scan all ports immediately.</li>
           <li><strong>Keep window open:</strong> pin the popover so it stays visible. Handy for screenshots, demos, or comparing cables side by side.</li>
-          <li><strong>Licence:</strong> enter or manage your Pro licence key.</li>
+          <li><strong>Settings…:</strong> open the Settings panel. Same as clicking the gear icon in the popover.</li>
+          <li><strong>Power Monitor</strong> <span class="pro-badge">Pro</span>: open the standalone power monitor window with live charts.</li>
+          <li><strong>Negotiation Diagnostics</strong> <span class="pro-badge">Pro</span>: open the per-port negotiation breakdown.</li>
+          <li><strong>Licence…:</strong> enter or manage your Pro licence key.</li>
           <li><strong>Check for Updates:</strong> look for a newer version on GitHub.</li>
+          <li><strong>Contribute Diagnostic Data…:</strong> run the bundled diagnostic test kit and submit anonymised port and power dumps to help improve hardware coverage.</li>
           <li><strong>About</strong> and <strong>WhatCable on GitHub:</strong> links to the project.</li>
           <li><strong>Quit:</strong> close the app.</li>
         </ul>
@@ -436,16 +441,36 @@ brew install --cask whatcable</pre>
 
         <h2 id="settings">Settings</h2>
         <p>
-          Click the gear icon in the popover header to open Settings.
+          Click the gear icon in the popover header to open Settings. The panel is grouped into sections that match the in-app layout:
         </p>
+
+        <h3>Behavior</h3>
         <ul>
-          <li><strong>Hide empty ports:</strong> only show ports with something plugged in.</li>
           <li><strong>Launch at login:</strong> start WhatCable automatically when you log in.</li>
-          <li><strong>Menu bar / Dock mode:</strong> by default WhatCable lives in the menu bar with no Dock icon. Turn this off to run it as a regular windowed app instead.</li>
+          <li><strong>Show in menu bar:</strong> by default WhatCable lives in the menu bar with no Dock icon. Turn this off to run it as a regular Dock app with a window.</li>
+        </ul>
+
+        <h3>Display</h3>
+        <ul>
           <li><strong>Show technical details:</strong> permanently enable engineer mode (the raw IOKit property view). Same as holding Option when you click the icon, but stays on.</li>
-          <li><strong>Notifications:</strong> get alerts when USB devices or chargers connect and disconnect.</li>
+          <li><strong>Hide empty ports:</strong> only show ports with something plugged in.</li>
           <li><strong>Font size:</strong> adjust the text size in the popover. Ranges from 80% to 140% of the default.</li>
           <li><strong>Language:</strong> override the system language. WhatCable picks up the change on its next launch.</li>
+        </ul>
+
+        <h3>Notifications</h3>
+        <ul>
+          <li><strong>Notify on cable changes:</strong> get alerts when USB devices or chargers connect and disconnect.</li>
+        </ul>
+
+        <h3>Community</h3>
+        <ul>
+          <li><strong>Contribute Diagnostic Data:</strong> opt-in submission of anonymised port and power dumps. Helps build out hardware coverage across the Mac lineup. Off until you start a run yourself.</li>
+        </ul>
+
+        <h3>Pro</h3>
+        <ul>
+          <li>If you don't have a Pro licence yet, this section shows a link to the upgrade page. With Pro activated, it hosts Pro-related toggles tied to the features described below.</li>
         </ul>
 
         <h2 id="pro">Pro features</h2>
@@ -525,7 +550,7 @@ brew install --cask whatcable</pre>
 
         <h3>CLI monitor mode <span class="pro-badge">Pro</span></h3>
         <p>
-          <code>whatcable --monitor</code> streams live power and cable state to your terminal. Pipe it, script it, log it.
+          <code>whatcable --monitor</code> streams live power and cable state to your terminal as plain text. <code>whatcable --monitor-json</code> outputs the same data as newline-delimited JSON for scripting and log pipelines.
         </p>
 
         <h3>Widget power sparkline <span class="pro-badge">Pro</span></h3>
