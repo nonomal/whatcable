@@ -318,6 +318,7 @@
           <li><a href="#menu">Right-click menu</a></li>
           <li><a href="#notifications">Notifications</a></li>
           <li><a href="#settings">Settings</a></li>
+          <li><a href="#contribute">Contribute Diagnostic Data</a></li>
           <li><a href="#pro">Pro features</a></li>
           <li><a href="#troubleshooting">Troubleshooting</a></li>
           <li><a href="#good-to-know">Good to know</a></li>
@@ -364,6 +365,7 @@ brew install --cask whatcable</pre>
           <li><strong>Charging diagnostic:</strong> whether the cable, charger, or Mac is the bottleneck, with the negotiated wattage.</li>
           <li><strong>Data-speed diagnostic:</strong> a plain-English verdict on what is limiting the link, the Mac port, the cable, or the device, so you know whether a faster cable would actually help.</li>
           <li><strong>Cable e-marker info:</strong> the cable's actual speed (USB 2.0 up to 80 Gbps), current rating (3A or 5A), and the e-marker chip vendor.</li>
+          <li><strong>Cable identification:</strong> if the cable's e-marker fingerprint matches one in the bundled <a href="/cables">cable database</a>, the brand and model are shown alongside the raw specs.</li>
           <li><strong>Charger PDO list:</strong> every voltage profile the charger advertises (5V, 9V, 15V, 20V, etc.), with the active one highlighted.</li>
           <li><strong>Connected device:</strong> vendor name and product type from the PD Discover Identity response.</li>
           <li><strong>USB devices:</strong> storage, hubs, and peripherals listed under the port they are plugged into, with their negotiated speed.</li>
@@ -409,6 +411,9 @@ brew install --cask whatcable</pre>
         </p>
         <p>
           You can also enable engineer mode permanently in Settings (the "Show technical details" toggle). Useful if you are debugging a cable or filing a bug report.
+        </p>
+        <p>
+          When a Thunderbolt or USB4 link is active, technical details mode also reveals the <strong>Thunderbolt fabric tree</strong>, showing per-lane speed, link generation (TB3, TB4, or TB5), and the full switch topology when you connect through one or more docks.
         </p>
 
         <h2 id="menu">Right-click menu</h2>
@@ -471,6 +476,33 @@ brew install --cask whatcable</pre>
         <h3>Pro</h3>
         <ul>
           <li>If you don't have a Pro licence yet, this section shows a link to the upgrade page. With Pro activated, it hosts Pro-related toggles tied to the features described below.</li>
+        </ul>
+
+        <h2 id="contribute">Contribute Diagnostic Data</h2>
+        <p>
+          WhatCable can submit anonymised diagnostic data to help expand hardware coverage. It is opt-in: nothing happens in the background, and a run only starts when you explicitly approve it.
+        </p>
+        <p>
+          Three entry points start a run, all leading to the same consent screen:
+        </p>
+        <ul>
+          <li>Right-click the menu bar icon and choose <strong>Contribute Diagnostic Data…</strong></li>
+          <li>Open <strong>Settings</strong> and use the <strong>Community</strong> section</li>
+          <li>From a terminal: <code>whatcable --test-kit</code> (with a y/N confirmation)</li>
+        </ul>
+
+        <h3>What is sent</h3>
+        <ul>
+          <li>Raw IOKit registry data from 13 small one-shot probes, covering port state, USB-PD identity, Thunderbolt link details, and HPM telemetry.</li>
+          <li>Your macOS version and chip family (for example, Apple M3 Pro).</li>
+          <li>A SHA-256 hash of your Mac's UUID, used to stitch the 13 probes together without storing the underlying ID.</li>
+        </ul>
+
+        <h3>What is not sent</h3>
+        <ul>
+          <li>No names, email addresses, serial numbers, or personal data.</li>
+          <li>No analytics or background telemetry. The only network call WhatCable makes on its own is the six-hourly update check.</li>
+          <li>Re-running from the same Mac overwrites your previous submission rather than adding to it, so we do not accumulate a timeline.</li>
         </ul>
 
         <h2 id="pro">Pro features</h2>
