@@ -23,6 +23,9 @@
 "Carrying DisplayPort video" = "DisplayPort वीडियो प्रसारित हो रहा है";
 "Carrying both data and DisplayPort video." = "डेटा और DisplayPort वीडियो दोनों प्रसारित हो रहे हैं।";
 "Charger advertises up to %lldW" = "चार्जर अधिकतम %lld W बताता है";
+"Charger: %@" = "Charger: %@";
+"Charger: %@ %@" = "Charger: %1$@ %2$@";
+"Charger identified as %@" = "Charger identified as %@";
 "Charger and cable are well-matched." = "चार्जर और केबल अच्छी तरह मेल खाते हैं।";
 "Charger can deliver up to %lldW, but this cable is only rated to carry %lldW. Replace the cable to charge faster." = "चार्जर अधिकतम %1$lld W दे सकता है, लेकिन यह केबल केवल %2$lld W तक रेटेड है। तेज़ चार्जिंग के लिए केबल बदलें।";
 "Charging" = "चार्जिंग";

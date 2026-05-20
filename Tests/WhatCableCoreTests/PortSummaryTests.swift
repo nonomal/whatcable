@@ -943,4 +943,223 @@ struct PortSummaryTests {
             "Cable power bullet should show 250W, got: \(summary.bullets)"
         )
     }
+
+    // MARK: - Charger identification (AdapterDetails + FedDetails fallback)
+
+    private func adapter(
+        manufacturer: String? = nil,
+        name: String? = nil,
+        model: String? = nil,
+        watts: Int? = 100
+    ) -> AdapterInfo {
+        AdapterInfo(
+            watts: watts,
+            isCharging: nil,
+            source: "AC",
+            manufacturer: manufacturer,
+            name: name,
+            model: model
+        )
+    }
+
+    private func fed(portIndex: Int = 1, vid: Int) -> FederatedIdentity {
+        FederatedIdentity(
+            portIndex: portIndex,
+            vendorID: vid,
+            productID: 0,
+            pdSpecRevision: 0,
+            powerRole: 0,
+            dualRolePower: false,
+            externalConnected: true
+        )
+    }
+
+    @Test("Charger bullet shows manufacturer and name when AdapterDetails populated")
+    func chargerBulletShowsManufacturerAndName() {
+        // Apple 140W brick: AdapterDetails has both fields. Expect the
+        // richer "Charger: Apple Inc. 140W USB-C Power Adapter" line.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 140, winningW: 140)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        let bullet = summary.bullets.first { $0.starts(with: "Charger:") }
+        #expect(bullet == "Charger: Apple Inc. 140W USB-C Power Adapter")
+    }
+
+    @Test("Charger bullet shows manufacturer only when Name is missing")
+    func chargerBulletShowsManufacturerOnly() {
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 60, winningW: 60)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: nil)
+        )
+        let bullet = summary.bullets.first { $0.starts(with: "Charger:") }
+        #expect(bullet == "Charger: Apple Inc.")
+    }
+
+    @Test("FedDetails fallback emits Charger identified line when no AdapterDetails")
+    func fedDetailsFallbackEmitsCharger() {
+        // CUKTECH-style case: AdapterDetails is empty / not present, but
+        // FedDetails gives us the VID (11009 = Zimi). Expect the hedged
+        // "Charger identified as Zimi Corporation (0x2B01)" line.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 45, winningW: 45)],
+            federatedIdentities: [fed(portIndex: 1, vid: 11009)]
+        )
+        let bullet = summary.bullets.first { $0.contains("Charger identified as") }
+        #expect(bullet != nil, "Expected hedged 'Charger identified as' bullet, got: \(summary.bullets)")
+        #expect(bullet!.contains("Zimi") && bullet!.contains("0x2B01"),
+            "Expected Zimi Corporation (0x2B01), got: \(bullet ?? "<nil>")")
+    }
+
+    @Test("FedDetails fallback suppressed when AdapterDetails has richer identity")
+    func fedDetailsSuppressedWhenAdapterPresent() {
+        // Hypothetical: both AdapterDetails and FedDetails populated.
+        // The richer "Charger: <Manufacturer> <Name>" line should fire;
+        // the FedDetails-derived "Charger identified as" line should NOT
+        // also fire (avoids double-prefix repetition on the same line).
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 140, winningW: 140)],
+            federatedIdentities: [fed(portIndex: 1, vid: 0x05AC)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        let chargerLines = summary.bullets.filter { $0.starts(with: "Charger:") || $0.contains("Charger identified as") }
+        #expect(chargerLines.count == 1,
+            "Expected exactly one charger-identity line, got: \(chargerLines)")
+        #expect(chargerLines.first == "Charger: Apple Inc. 140W USB-C Power Adapter")
+    }
+
+    @Test("Apple brick on MagSafe: AdapterDetails catches the silent FedDetails failure")
+    func appleBrickOnMagSafeUsesAdapterDetails() {
+        // The Apple-brick-on-MagSafe silent-failure case: FedDetails
+        // returns FedVendorID = 0, but AdapterDetails has the rich
+        // identity. The primary path should catch it.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 96, winningW: 96)],
+            federatedIdentities: [fed(portIndex: 1, vid: 0)],  // silent failure
+            adapter: adapter(manufacturer: "Apple Inc.", name: "96W USB-C Power Adapter")
+        )
+        let bullet = summary.bullets.first { $0.starts(with: "Charger:") }
+        #expect(bullet == "Charger: Apple Inc. 96W USB-C Power Adapter")
+        #expect(
+            !summary.bullets.contains(where: { $0.contains("identified as") }),
+            "No 'identified as' bullet expected when FedVendorID is 0"
+        )
+    }
+
+    @Test("Unknown VendorDB lookup does not emit anything for FedDetails")
+    func unknownVendorIDNoBullet() {
+        // FedVendorID is non-zero but neither USB-IF nor the community
+        // usb.ids list knows it. The old code would emit "Connected
+        // device: 0xCAFE" (just the hex); the safe fallback drops the
+        // bullet rather than mislead. 0xCAFE is verified not in
+        // whatcable.db at the time of writing; if a real vendor takes
+        // it later, swap to another truly-unknown VID.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 65, winningW: 65)],
+            federatedIdentities: [fed(portIndex: 1, vid: 0xCAFE)]  // not in either DB
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.contains("Charger identified as") || $0.contains("Connected device") }),
+            "No identity bullet expected for unknown VID, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("FedDetails wording is 'Connected device' when no charging source on port")
+    func fedDetailsConnectedDeviceWhenNotCharging() {
+        // A port with a known FedDetails VID but NO charging source on
+        // the port (it's a peripheral, dock, drive). Keep the generic
+        // "Connected device" wording rather than relabel as Charger.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC"], superSpeed: true)
+        let summary = PortSummary(
+            port: port,
+            sources: [],  // no charging source
+            federatedIdentities: [fed(portIndex: 1, vid: 11009)]
+        )
+        let bullet = summary.bullets.first { $0.contains("Connected device") }
+        #expect(bullet != nil, "Expected 'Connected device' line for peripheral, got: \(summary.bullets)")
+    }
+
+    @Test("Adapter with nil manufacturer does not emit Charger bullet")
+    func adapterWithNilManufacturerNoBullet() {
+        // Adapter present but no identity fields (e.g. Mac Studio idle,
+        // where AdapterDetails is {"FamilyCode"=0}). No bullet.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 60, winningW: 60)],
+            adapter: adapter(manufacturer: nil, name: nil)
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.starts(with: "Charger:") }),
+            "No Charger: bullet expected for empty AdapterDetails, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("Adapter with empty-string manufacturer does not emit Charger bullet")
+    func adapterWithEmptyStringManufacturerNoBullet() {
+        // Defensive case: the trim helper in the reader should already
+        // map empty to nil, but if a caller hands us an empty string
+        // directly we still want to suppress the bullet rather than
+        // emit a trailing-whitespace "Charger: " line.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 60, winningW: 60)],
+            adapter: adapter(manufacturer: "", name: "Some Adapter")
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.starts(with: "Charger:") }),
+            "Empty manufacturer should suppress the Charger bullet, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("Charger bullet does not fire when no charging source on port")
+    func chargerBulletRequiresChargingSourceOnPort() {
+        // AdapterInfo is system-wide; it describes the brick that's
+        // sourcing power somewhere on the system. The "Charger:" bullet
+        // should only appear on the port that's actively charging, not
+        // on every port the user has connected.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC"], superSpeed: true)
+        let summary = PortSummary(
+            port: port,
+            sources: [],  // no charging source on THIS port
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.starts(with: "Charger:") }),
+            "Charger: bullet should not appear on a non-charging port even when AdapterDetails is populated, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("Charger identity bullet appears before the wattage advertisement")
+    func chargerIdentityBulletOrdering() {
+        // Bullet ordering: "Charger: Apple Inc. 140W USB-C Power Adapter"
+        // should appear immediately before "Charger advertises up to NW"
+        // so the identity reads as the headline of the charger block.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 140, winningW: 140)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        let identityIdx = summary.bullets.firstIndex { $0.starts(with: "Charger:") }
+        let wattageIdx = summary.bullets.firstIndex { $0.contains("advertises up to") }
+        #expect(identityIdx != nil, "Identity bullet should appear")
+        #expect(wattageIdx != nil, "Wattage bullet should appear")
+        if let i = identityIdx, let w = wattageIdx {
+            #expect(i < w, "Identity (\(i)) should come before wattage (\(w)) in bullets: \(summary.bullets)")
+        }
+    }
 }

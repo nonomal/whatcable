@@ -23,6 +23,9 @@
 "Carrying DisplayPort video" = "Փոխանցում է DisplayPort տեսանյութ";
 "Carrying both data and DisplayPort video." = "Փոխանցում է և՛ տվյալներ, և՛ DisplayPort տեսանյութ:";
 "Charger advertises up to %lldW" = "Լիցքավորիչը հայտնում է մինչև %lldW հզորության մասին";
+"Charger: %@" = "Charger: %@";
+"Charger: %@ %@" = "Charger: %1$@ %2$@";
+"Charger identified as %@" = "Charger identified as %@";
 "Charger and cable are well-matched." = "Լիցքավորիչը և մալուխը համապատասխանում են միմյանց:";
 "Charger can deliver up to %lldW, but this cable is only rated to carry %lldW. Replace the cable to charge faster." = "Լիցքավորիչը կարող է ապահովել մինչև %1$lldW, սակայն այս մալուխը նախատեսված է միայն %2$lldW։ Փոխեք մալուխը ավելի արագ լիցքավորելու համար:";
 "Charging" = "Լիցքավորում";

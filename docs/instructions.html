@@ -195,6 +195,59 @@
         gap: 6px 16px;
         font-size: 14px;
       }
+      .install-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin: 0 0 16px;
+      }
+      .install-card {
+        padding: 18px 20px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+      }
+      .install-card h3 {
+        margin: 0 0 8px;
+      }
+      .install-card p {
+        font-size: 14.5px;
+        margin-bottom: 14px;
+      }
+      .install-card pre {
+        margin: 0;
+        padding: 12px 14px;
+        background: #0e1620;
+        color: #e3e8ef;
+        border-radius: 8px;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-x: auto;
+      }
+      .install-card .button {
+        align-self: flex-start;
+        padding: 10px 16px;
+        min-height: 40px;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 8px;
+        font-weight: 600;
+        line-height: 1;
+        background: var(--accent);
+        color: #fff;
+        border: 1px solid var(--accent);
+      }
+      .install-card .button:hover {
+        background: #0a7188;
+      }
+      @media (max-width: 600px) {
+        .install-grid { grid-template-columns: 1fr; }
+      }
       .pro-badge {
         display: inline-block;
         padding: 1px 6px;
@@ -224,7 +277,7 @@
       footer a { color: rgba(255, 255, 255, 0.85); }
       footer a:hover { color: #fff; }
       @media (max-width: 600px) {
-        .nav-links a:not(.button) { display: none; }
+        .nav-links a:not(.button):not([href="/instructions"]) { display: none; }
         .nav-links { gap: 12px; }
         .nav .button { padding: 8px 12px; font-size: 13px; }
         h1 { font-size: 28px; }
@@ -257,6 +310,7 @@
         <p class="subtitle">How to use the WhatCable menu bar app. Requires macOS 14+ on Apple Silicon.</p>
 
         <ul class="toc">
+          <li><a href="#install">Install</a></li>
           <li><a href="#what-it-shows">What it shows</a></li>
           <li><a href="#charging">Charging diagnostics</a></li>
           <li><a href="#trust">Cable trust signals</a></li>
@@ -264,10 +318,42 @@
           <li><a href="#menu">Right-click menu</a></li>
           <li><a href="#notifications">Notifications</a></li>
           <li><a href="#settings">Settings</a></li>
+          <li><a href="#contribute">Contribute Diagnostic Data</a></li>
           <li><a href="#pro">Pro features</a></li>
           <li><a href="#troubleshooting">Troubleshooting</a></li>
           <li><a href="#good-to-know">Good to know</a></li>
         </ul>
+
+        <h2 id="install">Install</h2>
+        <p>
+          WhatCable is signed with a Developer ID and notarised by Apple, so there are no Gatekeeper warnings. Requires macOS 14 (Sonoma) or later, Apple Silicon only.
+        </p>
+
+        <div class="install-grid">
+          <div class="install-card">
+            <h3>Direct download</h3>
+            <p>
+              Grab the latest <code>WhatCable.zip</code> from GitHub Releases, unzip, and drag <strong>WhatCable.app</strong> into your Applications folder.
+            </p>
+            <a class="button" href="https://github.com/darrylmorley/whatcable/releases/latest">Get the latest release</a>
+          </div>
+
+          <div class="install-card">
+            <h3>Homebrew</h3>
+            <p>
+              Two commands. Also adds the <code>whatcable</code> CLI to your PATH automatically.
+            </p>
+<pre>brew tap darrylmorley/whatcable
+brew install --cask whatcable</pre>
+            <button type="button" class="button" data-copy="brew tap darrylmorley/whatcable &amp;&amp; brew install --cask whatcable" onclick="copyCommand(this)" style="margin-top: 14px;">
+              Copy command
+            </button>
+          </div>
+        </div>
+
+        <div class="note">
+          <strong>Not on the Mac App Store on purpose.</strong> App Sandbox blocks the low-level IOKit reads WhatCable depends on, so it ships signed and notarised outside the store instead.
+        </div>
 
         <h2 id="what-it-shows">What it shows</h2>
         <p>
@@ -275,10 +361,11 @@
           Each card shows, in plain English:
         </p>
         <ul>
-          <li><strong>Headline:</strong> Thunderbolt / USB4, USB device, Charging only, Slow USB / charge-only cable, or Nothing connected.</li>
+          <li><strong>Headline:</strong> Thunderbolt / USB4, USB-C with video, Display connected, USB device, Slow USB device or charge-only cable, Charging, Plugged in &middot; battery full, or Nothing connected. When a charger is attached, the headline gains a <em>&middot; NW charger</em> suffix, plus <em>&middot; NW cable</em> when the cable is the bottleneck.</li>
           <li><strong>Charging diagnostic:</strong> whether the cable, charger, or Mac is the bottleneck, with the negotiated wattage.</li>
           <li><strong>Data-speed diagnostic:</strong> a plain-English verdict on what is limiting the link, the Mac port, the cable, or the device, so you know whether a faster cable would actually help.</li>
           <li><strong>Cable e-marker info:</strong> the cable's actual speed (USB 2.0 up to 80 Gbps), current rating (3A or 5A), and the e-marker chip vendor.</li>
+          <li><strong>Cable identification:</strong> if the cable's e-marker fingerprint matches one in the bundled <a href="/cables">cable database</a>, the brand and model are shown alongside the raw specs.</li>
           <li><strong>Charger PDO list:</strong> every voltage profile the charger advertises (5V, 9V, 15V, 20V, etc.), with the active one highlighted.</li>
           <li><strong>Connected device:</strong> vendor name and product type from the PD Discover Identity response.</li>
           <li><strong>USB devices:</strong> storage, hubs, and peripherals listed under the port they are plugged into, with their negotiated speed.</li>
@@ -298,6 +385,7 @@
           <li><strong>"Charging well at 96W"</strong> means the cable, charger, and Mac are all matched. You are getting the best charge rate this setup can deliver.</li>
           <li><strong>"Cable is limiting charging speed"</strong> means the cable is rated below what the charger can deliver. A 3A cable on a 100W charger will cap you at 60W.</li>
           <li><strong>"Charging at 30W (charger can do up to 96W)"</strong> means the Mac is drawing less than the charger offers. This is normal when the battery is nearly full, or the Mac is asleep.</li>
+          <li><strong>"Battery full, not charging"</strong> means the Mac is plugged in but isn't drawing power because the battery is at 100%. macOS does this on purpose to reduce wear.</li>
         </ul>
         <p>
           The charger PDO list shows every voltage profile the charger advertises. The active one is highlighted. This helps you confirm whether your charger actually supports the wattage it claims on the box.
@@ -324,6 +412,14 @@
         <p>
           You can also enable engineer mode permanently in Settings (the "Show technical details" toggle). Useful if you are debugging a cable or filing a bug report.
         </p>
+        <p>
+          When a Thunderbolt or USB4 link is active, technical details mode also reveals the <strong>Thunderbolt fabric tree</strong>, showing per-lane speed, link generation (TB3, TB4, or TB5), and the full switch topology when you connect through one or more docks.
+        </p>
+
+        <figure>
+          <img src="screenshot-engineer.webp" alt="WhatCable popover with the Show technical details toggle on, revealing the underlying IOKit registry properties below the port card" loading="lazy" width="480">
+          <figcaption>Technical details mode reveals the underlying IOKit properties for each port. Useful for debugging or filing detailed bug reports.</figcaption>
+        </figure>
 
         <h2 id="menu">Right-click menu</h2>
         <p>
@@ -332,8 +428,12 @@
         <ul>
           <li><strong>Refresh:</strong> re-scan all ports immediately.</li>
           <li><strong>Keep window open:</strong> pin the popover so it stays visible. Handy for screenshots, demos, or comparing cables side by side.</li>
-          <li><strong>Licence:</strong> enter or manage your Pro licence key.</li>
-          <li><strong>Check for Updates:</strong> look for a newer version on GitHub (Homebrew/zip installs only; App Store handles its own updates).</li>
+          <li><strong>Settings…:</strong> open the Settings panel. Same as clicking the gear icon in the popover.</li>
+          <li><strong>Power Monitor</strong> <span class="pro-badge">Pro</span>: open the standalone power monitor window with live charts.</li>
+          <li><strong>Negotiation Diagnostics</strong> <span class="pro-badge">Pro</span>: open the per-port negotiation breakdown.</li>
+          <li><strong>Licence…:</strong> enter or manage your Pro licence key.</li>
+          <li><strong>Check for Updates:</strong> look for a newer version on GitHub.</li>
+          <li><strong>Contribute Diagnostic Data…:</strong> run the bundled diagnostic test kit and submit anonymised port and power dumps to help improve hardware coverage.</li>
           <li><strong>About</strong> and <strong>WhatCable on GitHub:</strong> links to the project.</li>
           <li><strong>Quit:</strong> close the app.</li>
         </ul>
@@ -351,16 +451,63 @@
 
         <h2 id="settings">Settings</h2>
         <p>
-          Click the gear icon in the popover header to open Settings.
+          Click the gear icon in the popover header to open Settings. The panel is grouped into sections that match the in-app layout:
+        </p>
+
+        <h3>Behavior</h3>
+        <ul>
+          <li><strong>Launch at login:</strong> start WhatCable automatically when you log in.</li>
+          <li><strong>Show in menu bar:</strong> by default WhatCable lives in the menu bar with no Dock icon. Turn this off to run it as a regular Dock app with a window.</li>
+        </ul>
+
+        <h3>Display</h3>
+        <ul>
+          <li><strong>Show technical details:</strong> permanently enable engineer mode (the raw IOKit property view). Same as holding Option when you click the icon, but stays on.</li>
+          <li><strong>Hide empty ports:</strong> only show ports with something plugged in.</li>
+          <li><strong>Font size:</strong> adjust the text size in the popover. Ranges from 80% to 140% of the default.</li>
+          <li><strong>Language:</strong> override the system language. Eleven options plus System Default: Deutsch, English, Español, Français, Italiano, Norsk Bokmål [Norwegian], Polski, हिन्दी [Hindi], 日本語 [Japanese], 中文 (简体) [Simplified Chinese], and Հայերեն [Armenian]. WhatCable picks up the change on its next launch.</li>
+        </ul>
+
+        <h3>Notifications</h3>
+        <ul>
+          <li><strong>Notify on cable changes:</strong> get alerts when USB devices or chargers connect and disconnect.</li>
+        </ul>
+
+        <h3>Community</h3>
+        <ul>
+          <li><strong>Contribute Diagnostic Data:</strong> opt-in submission of anonymised port and power dumps. Helps build out hardware coverage across the Mac lineup. Off until you start a run yourself.</li>
+        </ul>
+
+        <h3>Pro</h3>
+        <ul>
+          <li>If you don't have a Pro licence yet, this section shows a link to the upgrade page. With Pro activated, it hosts Pro-related toggles tied to the features described below.</li>
+        </ul>
+
+        <h2 id="contribute">Contribute Diagnostic Data</h2>
+        <p>
+          WhatCable can submit anonymised diagnostic data to help expand hardware coverage. It is opt-in: nothing happens in the background, and a run only starts when you explicitly approve it.
+        </p>
+        <p>
+          Three entry points start a run, all leading to the same consent screen:
         </p>
         <ul>
-          <li><strong>Hide empty ports:</strong> only show ports with something plugged in.</li>
-          <li><strong>Launch at login:</strong> start WhatCable automatically when you log in.</li>
-          <li><strong>Menu bar / Dock mode:</strong> by default WhatCable lives in the menu bar with no Dock icon. Turn this off to run it as a regular windowed app instead.</li>
-          <li><strong>Show technical details:</strong> permanently enable engineer mode (the raw IOKit property view). Same as holding Option when you click the icon, but stays on.</li>
-          <li><strong>Notifications:</strong> get alerts when USB devices or chargers connect and disconnect.</li>
-          <li><strong>Font size:</strong> adjust the text size in the popover. Ranges from 80% to 140% of the default.</li>
-          <li><strong>Language:</strong> override the system language. WhatCable picks up the change on its next launch.</li>
+          <li>Right-click the menu bar icon and choose <strong>Contribute Diagnostic Data…</strong></li>
+          <li>Open <strong>Settings</strong> and use the <strong>Community</strong> section</li>
+          <li>From a terminal: <code>whatcable --test-kit</code> (with a y/N confirmation)</li>
+        </ul>
+
+        <h3>What is sent</h3>
+        <ul>
+          <li>Raw IOKit registry data from 13 small one-shot probes, covering port state, USB-PD identity, Thunderbolt link details, and HPM telemetry.</li>
+          <li>Your macOS version and chip family (for example, Apple M3 Pro).</li>
+          <li>A SHA-256 hash of your Mac's UUID, used to stitch the 13 probes together without storing the underlying ID.</li>
+        </ul>
+
+        <h3>What is not sent</h3>
+        <ul>
+          <li>No names, email addresses, serial numbers, or personal data.</li>
+          <li>No analytics or background telemetry. The only network call WhatCable makes on its own is the six-hourly update check.</li>
+          <li>Re-running from the same Mac overwrites your previous submission rather than adding to it, so we do not accumulate a timeline.</li>
         </ul>
 
         <h2 id="pro">Pro features</h2>
@@ -372,6 +519,11 @@
         <p>
           The free app gives a one-line verdict on what is limiting a connection. Pro shows the full breakdown: what the Mac port, the cable, and the device each support, side by side with what was actually negotiated and the weak link highlighted, plus a cross-check of the cable's e-marker against the Thunderbolt controller so a cable that under-reports itself is caught. Pro screens open inside the app, with an optional detach into their own window so a screen can stay open while you swap cables.
         </p>
+
+        <figure>
+          <img src="screenshot-negotiation-diagnostics.webp" alt="Negotiation Diagnostics screen showing per-port power and data-speed breakdowns with the bottleneck highlighted" loading="lazy" width="480">
+          <figcaption>Negotiation Diagnostics: per-port breakdown of what each link supports against what was actually negotiated, with the weak link called out.</figcaption>
+        </figure>
 
         <h3>Live power metering <span class="pro-badge">Pro</span></h3>
         <p>
@@ -394,8 +546,8 @@
         </p>
 
         <figure>
-          <img src="screenshot-diagnostics.png" alt="Full diagnostics view showing pin diagram, cable identity, port health, and power contract" loading="lazy">
-          <figcaption>Pro diagnostics view with port health counters, PD contract, and cable identity.</figcaption>
+          <img src="screenshot-diagnostics.webp" alt="Pro diagnostics screen showing port health counters, liquid detection status, and the negotiated power contract for one port" loading="lazy">
+          <figcaption>Pro diagnostics: port health counters, liquid detection state, and PD contract on one screen.</figcaption>
         </figure>
 
         <h3>PD event trace <span class="pro-badge">Pro</span></h3>
@@ -409,8 +561,8 @@
         </p>
 
         <figure>
-          <img src="screenshot-dp-altmode.png" alt="DisplayPort Alt Mode diagnostics showing lane allocation and monitor identity" loading="lazy">
-          <figcaption>DP Alt Mode view showing lane allocation, link rate, and monitor identity from EDID.</figcaption>
+          <img src="screenshot-dp-altmode.webp" alt="Pro diagnostics screen for a USB-C port driving a display, showing the device identity (Vendor ID, Product ID) and a pin diagram with the DP four-lane routing" loading="lazy">
+          <figcaption>DP Alt Mode view: device identity, pin diagram with DP lane routing, and port health on one screen.</figcaption>
         </figure>
 
         <h3>Raw VDO identity <span class="pro-badge">Pro</span></h3>
@@ -434,13 +586,13 @@
         </p>
 
         <figure>
-          <img src="screenshot-power-monitor.png" alt="Power Monitor window showing live wattage chart over time" loading="lazy">
-          <figcaption>Power monitor with live wattage chart. Useful for testing chargers and cables under load.</figcaption>
+          <img src="screenshot-power-monitor.webp" alt="Power Monitor window showing a MagSafe port at 59.8W with the System Power Input panel below" loading="lazy">
+          <figcaption>Power Monitor in its own window. On Macs without live per-port draw, the value shown is the negotiated PD contract maximum.</figcaption>
         </figure>
 
         <h3>CLI monitor mode <span class="pro-badge">Pro</span></h3>
         <p>
-          <code>whatcable --monitor</code> streams live power and cable state to your terminal. Pipe it, script it, log it.
+          <code>whatcable --monitor</code> streams live power and cable state to your terminal as plain text. <code>whatcable --monitor-json</code> outputs the same data as newline-delimited JSON for scripting and log pipelines.
         </p>
 
         <h3>Widget power sparkline <span class="pro-badge">Pro</span></h3>
@@ -489,7 +641,7 @@
 
         <h2 id="good-to-know">Good to know</h2>
         <ul>
-          <li>WhatCable makes no network calls of its own (App Store version). The Homebrew/zip version checks GitHub for updates once every six hours. No analytics, no telemetry. See the <a href="/privacy">privacy policy</a>.</li>
+          <li>WhatCable checks GitHub for updates once every six hours. No analytics, no telemetry. See the <a href="/privacy">privacy policy</a>.</li>
           <li>WhatCable trusts the e-marker chip for cable capabilities. If a cable claims 240W / 40 Gbps but performs poorly, the chip is reporting incorrect data.</li>
           <li>The <a href="/cables">cable database</a> is built from community-reported cables. If your cable is not listed, use "Report this cable" in the app to contribute.</li>
           <li>WhatCable includes a <a href="/cli">command-line tool</a> with JSON output, watch mode, and cable reports. It ships inside the app bundle and is on your PATH automatically if you installed via Homebrew.</li>
@@ -517,5 +669,24 @@
         </span>
       </div>
     </footer>
+    <script>
+      function copyCommand(btn) {
+        const text = btn.dataset.copy;
+        if (!text) return;
+        const original = btn.textContent.trim();
+        const revert = (msg) => {
+          btn.textContent = msg;
+          setTimeout(() => { btn.textContent = original; }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            () => revert("Copied!"),
+            () => revert("Copy failed, select manually")
+          );
+        } else {
+          revert("Copy failed, select manually");
+        }
+      }
+    </script>
   </body>
 </html>

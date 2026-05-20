@@ -57,7 +57,38 @@
         height: 64px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 16px;
       }
+
+      .nav-links {
+        display: inline-flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .nav-links a {
+        color: var(--ink-soft);
+        font-weight: 500;
+        font-size: 14px;
+      }
+
+      .nav-links a:hover { color: var(--ink); }
+
+      footer {
+        padding: 24px 20px;
+        text-align: center;
+        border-top: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .footer-inner {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .footer-inner a { color: var(--muted); }
+      .footer-inner a:hover { color: var(--ink); text-decoration: underline; }
 
       .brand {
         display: inline-flex;
@@ -198,6 +229,9 @@
           <img src="icon.png" alt="WhatCable" class="mark">
           WhatCable
         </a>
+        <div class="nav-links">
+          <a href="/instructions">Docs</a>
+        </div>
       </div>
     </nav>
 
@@ -235,5 +269,17 @@
         <p class="back">No email after a few minutes? Check your spam folder or <a href="/support">contact support</a>.</p>
       </div>
     </main>
+
+    <footer>
+      <div class="footer-inner">
+        <a href="/">Home</a>
+        &nbsp;&middot;&nbsp;
+        <a href="/instructions">Docs</a>
+        &nbsp;&middot;&nbsp;
+        <a href="/support">Support</a>
+        &nbsp;&middot;&nbsp;
+        <a href="https://github.com/darrylmorley/whatcable">GitHub</a>
+      </div>
+    </footer>
   </body>
 </html>

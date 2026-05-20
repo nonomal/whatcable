@@ -253,7 +253,8 @@ struct ContentView: View {
                                 showAdvanced: showAdvanced,
                                 cioCapability: trmWatcher.cioCapabilities.first { $0.portKey == port.portKey },
                                 chargerWattageSource: wattageSource,
-                                batteryFullyCharged: batteryFull
+                                batteryFullyCharged: batteryFull,
+                                adapter: adapter
                             )
                         }
                     }
@@ -483,6 +484,10 @@ struct PortCard: View {
     let cioCapability: CIOCableCapability?
     let chargerWattageSource: ChargerWattageSource
     let batteryFullyCharged: Bool?
+    /// System-wide adapter info from `SystemPower.currentAdapter()`.
+    /// Threaded through so the "Charger: <Manufacturer> <Name>" bullet
+    /// can fire on the active charging port.
+    let adapter: AdapterInfo?
 
     @State private var reportingCable: USBPDSOP?
 
@@ -497,7 +502,8 @@ struct PortCard: View {
             cioCapability: cioCapability,
             isConnectedOverride: isLive,
             chargerWattageSource: chargerWattageSource,
-            batteryFullyCharged: batteryFullyCharged
+            batteryFullyCharged: batteryFullyCharged,
+            adapter: adapter
         )
     }
 

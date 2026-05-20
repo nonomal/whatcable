@@ -55,6 +55,17 @@ public struct AdapterInfo: Hashable, Sendable {
     public let adapterID: Int?
     /// PMU (Power Management Unit) configuration value.
     public let pmuConfiguration: Int?
+    /// Charger brand from the IOKit `AdapterDetails.Manufacturer` key
+    /// (e.g. "Apple Inc."). Present mostly on Apple bricks. Nil when the
+    /// field is absent or empty.
+    public let manufacturer: String?
+    /// Product name from the IOKit `AdapterDetails.Name` key (e.g.
+    /// "140W USB-C Power Adapter"). Pairs with `manufacturer`. Nil when
+    /// the field is absent or empty.
+    public let name: String?
+    /// Apple-internal model code from `AdapterDetails.Model` (e.g. "0x7019").
+    /// Distinct from the `Name`; not currently surfaced to users.
+    public let model: String?
 
     public init(
         watts: Int?,
@@ -69,7 +80,10 @@ public struct AdapterInfo: Hashable, Sendable {
         hvcActiveIndex: Int? = nil,
         familyCode: Int? = nil,
         adapterID: Int? = nil,
-        pmuConfiguration: Int? = nil
+        pmuConfiguration: Int? = nil,
+        manufacturer: String? = nil,
+        name: String? = nil,
+        model: String? = nil
     ) {
         self.watts = watts
         self.isCharging = isCharging
@@ -84,6 +98,9 @@ public struct AdapterInfo: Hashable, Sendable {
         self.familyCode = familyCode
         self.adapterID = adapterID
         self.pmuConfiguration = pmuConfiguration
+        self.manufacturer = manufacturer
+        self.name = name
+        self.model = model
     }
 }
 

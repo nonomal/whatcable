@@ -74,7 +74,8 @@ public enum TextFormatter {
             usb3Transports: usb3Transports,
             cioCapability: cioCapability,
             chargerWattageSource: chargerWattageSource,
-            batteryFullyCharged: batteryFullyCharged
+            batteryFullyCharged: batteryFullyCharged,
+            adapter: adapter
         )
         let label = port.portDescription ?? port.serviceName
         let typeSuffix = port.portTypeDescription.map { " (\($0))" } ?? ""

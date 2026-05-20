@@ -150,8 +150,35 @@ public enum AppleSmartBatteryReader {
             hvcActiveIndex: (d["UsbHvcHvcIndex"] as? NSNumber)?.intValue,
             familyCode: (d["FamilyCode"] as? NSNumber)?.intValue,
             adapterID: (d["AdapterID"] as? NSNumber)?.intValue,
-            pmuConfiguration: (d["PMUConfiguration"] as? NSNumber)?.intValue
+            pmuConfiguration: (d["PMUConfiguration"] as? NSNumber)?.intValue,
+            manufacturer: nonEmptyString(d["Manufacturer"]),
+            name: nonEmptyString(d["Name"]),
+            model: nonEmptyString(d["Model"])
         )
+    }
+
+    /// Returns the value as a non-empty trimmed string, or nil when the
+    /// value is missing or only whitespace. Used so the AdapterDetails
+    /// identity fields (Manufacturer, Name, Model) are either present-
+    /// and-meaningful or nil, with no in-between empty case.
+    ///
+    /// Accepts both `String` and `NSNumber`. IOKit's AdapterDetails dict
+    /// has stored `Model` as a string ("0x7019") in every observed
+    /// sample, but the dict is `[String: Any]` and a future macOS or a
+    /// different brick could return it as a number; recover that case
+    /// rather than silently dropping it.
+    private static func nonEmptyString(_ value: Any?) -> String? {
+        let raw: String?
+        if let s = value as? String {
+            raw = s
+        } else if let n = value as? NSNumber {
+            raw = n.stringValue
+        } else {
+            raw = nil
+        }
+        guard let s = raw else { return nil }
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private static func parseHVCMenu(_ value: Any?) -> [AdapterHVCEntry] {

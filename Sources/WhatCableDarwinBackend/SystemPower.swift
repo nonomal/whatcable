@@ -50,6 +50,27 @@ public enum SystemPower {
         let adapterID = (info["AdapterID"] as? NSNumber)?.intValue
         let pmuConfig = (info["PMUConfiguration"] as? NSNumber)?.intValue
 
+        // IOKit can return empty strings for the identity fields when
+        // the adapter is unknown or not yet enumerated. Treat empty
+        // same as missing so the consumer doesn't special-case both.
+        // Accepts both String and NSNumber: `Model` has always been a
+        // string in observed samples ("0x7019"), but the dict typing
+        // is `[String: Any]` and a different brick could return it as
+        // a number; recover that case rather than drop the value.
+        let trim: (Any?) -> String? = { value in
+            let raw: String?
+            if let s = value as? String {
+                raw = s
+            } else if let n = value as? NSNumber {
+                raw = n.stringValue
+            } else {
+                raw = nil
+            }
+            guard let s = raw else { return nil }
+            let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+            return t.isEmpty ? nil : t
+        }
+
         return AdapterInfo(
             watts: w,
             isCharging: nil,
@@ -63,7 +84,10 @@ public enum SystemPower {
             hvcActiveIndex: hvcIndex,
             familyCode: familyCode,
             adapterID: adapterID,
-            pmuConfiguration: pmuConfig
+            pmuConfiguration: pmuConfig,
+            manufacturer: trim(info["Manufacturer"]),
+            name: trim(info["Name"]),
+            model: trim(info["Model"])
         )
     }
 

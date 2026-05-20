@@ -23,6 +23,9 @@
 "Carrying DisplayPort video" = "Carrying DisplayPort video";
 "Carrying both data and DisplayPort video." = "Carrying both data and DisplayPort video.";
 "Charger advertises up to %lldW" = "Charger advertises up to %lldW";
+"Charger: %@" = "Charger: %@";
+"Charger: %@ %@" = "Charger: %1$@ %2$@";
+"Charger identified as %@" = "Charger identified as %@";
 "Charger and cable are well-matched." = "Charger and cable are well-matched.";
 "Charger can deliver up to %lldW, but this cable is only rated to carry %lldW. Replace the cable to charge faster." = "Charger can deliver up to %1$lldW, but this cable is only rated to carry %2$lldW. Replace the cable to charge faster.";
 "Charging" = "Charging";

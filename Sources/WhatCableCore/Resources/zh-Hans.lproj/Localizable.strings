@@ -23,6 +23,9 @@
 "Carrying DisplayPort video" = "正在传输 DisplayPort 视频";
 "Carrying both data and DisplayPort video." = "正在同时传输数据和 DisplayPort 视频。";
 "Charger advertises up to %lldW" = "充电器声明最高 %lldW";
+"Charger: %@" = "Charger: %@";
+"Charger: %@ %@" = "Charger: %1$@ %2$@";
+"Charger identified as %@" = "Charger identified as %@";
 "Charger and cable are well-matched." = "充电器和线缆匹配良好。";
 "Charger can deliver up to %lldW, but this cable is only rated to carry %lldW. Replace the cable to charge faster." = "充电器最高可提供 %1$lldW，但这条线缆额定只能承载 %2$lldW。更换线缆可以更快充电。";
 "Charging" = "正在充电";

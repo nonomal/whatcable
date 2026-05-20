@@ -23,6 +23,9 @@
 "Carrying DisplayPort video" = "DisplayPort映像を伝送中";
 "Carrying both data and DisplayPort video." = "データとDisplayPort映像を同時に伝送中。";
 "Charger advertises up to %lldW" = "充電器は最大%lld Wを通知";
+"Charger: %@" = "Charger: %@";
+"Charger: %@ %@" = "Charger: %1$@ %2$@";
+"Charger identified as %@" = "Charger identified as %@";
 "Charger and cable are well-matched." = "充電器とケーブルは適切に組み合わされています。";
 "Charger can deliver up to %lldW, but this cable is only rated to carry %lldW. Replace the cable to charge faster." = "充電器は最大%1$lld Wを出力できますが、このケーブルは%2$lld Wまでの定格です。より速く充電するにはケーブルを交換してください。";
 "Charging" = "充電";

@@ -48,7 +48,8 @@ extension PortSummary {
         cioCapability: CIOCableCapability? = nil,
         isConnectedOverride: Bool? = nil,
         chargerWattageSource: ChargerWattageSource = .unknown,
-        batteryFullyCharged: Bool? = nil
+        batteryFullyCharged: Bool? = nil,
+        adapter: AdapterInfo? = nil
     ) {
         let connected = isConnectedOverride ?? (port.connectionActive == true)
         let active = port.transportsActive
@@ -151,6 +152,18 @@ extension PortSummary {
             }
         }
 
+        // Hoist the charging source lookup early. The identity-block
+        // wording below and the e-marker guard further down both need
+        // to know whether something is sourcing power on this port.
+        let chargingSource = PowerSource.preferredChargingSource(in: sources)
+
+        // Whether we'll emit a richer "Charger: <Manufacturer> <Name>"
+        // line later (in the charger details block). We use this to
+        // avoid double-prefixing with the FedDetails fallback below
+        // when both signals identify the same charger.
+        let adapterIdentityWillFire = chargingSource != nil
+            && (adapter?.manufacturer?.isEmpty == false)
+
         // Partner identity (SOP): what's connected.
         if let partner = identities.first(where: { $0.endpoint == .sop }),
            let header = partner.idHeader {
@@ -163,18 +176,32 @@ extension PortSummary {
             }
         } else if let portNum = port.portNumber,
                   let fed = federatedIdentities.first(where: { $0.portIndex == portNum }),
-                  fed.hasDevice {
-            let vendor = VendorDB.label(for: fed.vendorID)
-            bullets.append(String(localized: "Connected device: \(vendor)", bundle: _coreLocalizedBundle))
+                  fed.hasDevice,
+                  let vendorName = VendorDB.name(for: fed.vendorID) {
+            // Safe fallback: only emit a bullet when VendorDB knows the
+            // VID. Unknown VIDs would expose either a silicon-vendor
+            // name or just a hex code, both of which mislead users when
+            // labelled as the "connected device" or "charger".
+            let vendor = "\(vendorName) (0x\(String(format: "%04X", fed.vendorID)))"
+            if chargingSource != nil && !adapterIdentityWillFire {
+                // A charging source is on this port and we don't have
+                // a richer Manufacturer/Name pair from AdapterDetails;
+                // label this as the charger.
+                bullets.append(String(localized: "Charger identified as \(vendor)", bundle: _coreLocalizedBundle))
+            } else if chargingSource == nil {
+                // No charging source: the connected thing is a
+                // peripheral, dock, drive, etc. Keep the generic
+                // wording.
+                bullets.append(String(localized: "Connected device: \(vendor)", bundle: _coreLocalizedBundle))
+            }
+            // If chargingSource != nil && adapterIdentityWillFire,
+            // the AdapterDetails "Charger:" line is coming later with
+            // a richer label; skip this one to avoid double-prefix.
         }
 
         // ------------------------------------------------------------
         // B. The cable
         // ------------------------------------------------------------
-
-        // Hoist the charging source lookup so the e-marker guard can
-        // use it to decide whether something is on the other end.
-        let chargingSource = PowerSource.preferredChargingSource(in: sources)
 
         // E-marker presence. The whole cable-details bullet only makes
         // sense on USB-C, where the user can swap cables and might wonder
@@ -269,6 +296,20 @@ extension PortSummary {
 
         // Power summary from PD or MagSafe power sources.
         if let chargingSource {
+            // Surface the IOKit-reported charger brand and product name
+            // when present. Only Apple bricks and a handful of other
+            // sources populate AdapterDetails.Manufacturer / Name; on
+            // third-party chargers these are typically nil and the
+            // FedDetails fallback (in the identity block above) carries
+            // the brand instead.
+            if let manufacturer = adapter?.manufacturer, !manufacturer.isEmpty {
+                if let name = adapter?.name, !name.isEmpty {
+                    bullets.append(String(localized: "Charger: \(manufacturer) \(name)", bundle: _coreLocalizedBundle))
+                } else {
+                    bullets.append(String(localized: "Charger: \(manufacturer)", bundle: _coreLocalizedBundle))
+                }
+            }
+
             switch chargerWattageSource {
             case .portNegotiated(let w) where w > 0:
                 bullets.append(String(localized: "Charger advertises up to \(w)W", bundle: _coreLocalizedBundle))

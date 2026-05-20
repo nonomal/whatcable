@@ -131,7 +131,8 @@ private struct PortDTO: Codable {
             usb3Transports: usb3Transports,
             cioCapability: cioCapability,
             chargerWattageSource: chargerWattageSource,
-            batteryFullyCharged: batteryFullyCharged
+            batteryFullyCharged: batteryFullyCharged,
+            adapter: adapter
         )
         self.status = String(describing: summary.status)
         self.headline = summary.headline
@@ -535,6 +536,14 @@ private struct AdapterDTO: Codable {
     let isWireless: Bool?
     /// The charger's HVC menu: every voltage/current combo it supports.
     let hvcMenu: [AdapterHVCEntryDTO]?
+    /// Charger brand from IOKit `AdapterDetails.Manufacturer`. Present
+    /// mostly on Apple bricks. Omitted when nil or empty.
+    let manufacturer: String?
+    /// Product name from IOKit `AdapterDetails.Name`. Pairs with
+    /// `manufacturer`. Omitted when nil or empty.
+    let name: String?
+    /// Apple-internal model code (e.g. "0x7019"). Omitted when absent.
+    let model: String?
 
     init(adapter: AdapterInfo) {
         self.watts = adapter.watts
@@ -547,6 +556,9 @@ private struct AdapterDTO: Codable {
         self.hvcMenu = adapter.hvcMenu.isEmpty ? nil : adapter.hvcMenu.map {
             AdapterHVCEntryDTO(voltageMV: $0.voltageMV, currentMA: $0.currentMA)
         }
+        self.manufacturer = adapter.manufacturer
+        self.name = adapter.name
+        self.model = adapter.model
     }
 }
 

@@ -633,7 +633,7 @@
       }
 
       @media (max-width: 600px) {
-        .nav-links a:not(.button) { display: none; }
+        .nav-links a:not(.button):not([href="/instructions"]) { display: none; }
         .nav-links { gap: 12px; }
         .nav .button { padding: 8px 12px; font-size: 13px; }
         .hero h1 { font-size: 28px; }
@@ -677,7 +677,7 @@
             WhatCable Pro
           </div>
           <h1>Go deeper into every<br><span class="accent">USB-C port and cable</span></h1>
-          <p class="lede">The free app tells you what your cable can do. Pro shows you what it's doing right now - live power, PD contracts, port health, and signal-level diagnostics straight from IOKit.</p>
+          <p class="lede">The free app tells you what your cable can do. Pro shows you what's bottlenecking it: Negotiation Diagnostics breaks down every link by Mac port, cable, and device with the weak link highlighted, plus live power metering, PD contract inspection, and signal-level diagnostics straight from IOKit.</p>
           <div class="hero-actions">
             <button class="button accent lg" id="buy-hero">Buy Pro - £4.99</button>
             <a href="#features" class="button secondary lg">See what's included</a>
@@ -685,7 +685,7 @@
           <p class="price-note">One-time purchase. Works on up to 2 Macs. macOS 14+ required.</p>
         </div>
         <div class="hero-img">
-          <img src="screenshot.webp" alt="WhatCable menu bar popover showing USB-C port diagnostics">
+          <img src="screenshot-power-monitor.webp" alt="WhatCable Pro Power Monitor window showing a MagSafe port at 59.8W with the live System Power Input panel below">
         </div>
       </div>
     </section>
@@ -700,17 +700,17 @@
         </div>
         <div class="showcase-grid">
           <div class="showcase-item">
-            <img src="screenshot-power-monitor.png" alt="Power Monitor showing live wattage graph over time" loading="lazy">
-            <div class="caption">Power Monitor</div>
-            <div class="caption-detail">Live watts, voltage, and current per port</div>
+            <img src="screenshot-negotiation-diagnostics.webp" alt="Negotiation Diagnostics screen showing per-port power and data-speed breakdowns with the bottleneck highlighted" loading="lazy">
+            <div class="caption">Negotiation Diagnostics</div>
+            <div class="caption-detail">Per-port breakdown of what each link supports, with the weak link highlighted</div>
           </div>
           <div class="showcase-item">
-            <img src="screenshot-diagnostics.png" alt="Full diagnostics view showing pin diagram, cable identity, port health, and power contract" loading="lazy">
+            <img src="screenshot-diagnostics.webp" alt="Pro diagnostics screen showing port health counters, liquid detection status, and the negotiated power contract for one port" loading="lazy">
             <div class="caption">Port Diagnostics</div>
             <div class="caption-detail">Pin diagram, port health, PD contract, event trace</div>
           </div>
           <div class="showcase-item">
-            <img src="screenshot-dp-altmode.png" alt="DisplayPort Alt Mode diagnostics showing lane allocation and monitor identity" loading="lazy">
+            <img src="screenshot-dp-altmode.webp" alt="Pro diagnostics screen for a USB-C port driving a display, showing the device identity and a pin diagram with the DP four-lane routing" loading="lazy">
             <div class="caption">Display Detection</div>
             <div class="caption-detail">DP lane mapping, device identity, signal routing</div>
           </div>
@@ -733,7 +733,7 @@
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="4" height="9"/><rect x="10" y="7" width="4" height="13"/><rect x="17" y="3" width="4" height="17"/></svg>
             </div>
             <h3>Negotiation Diagnostics</h3>
-            <p>Per connection, see what the Mac port, the cable, and the device each support against what was actually negotiated, side by side, with the weak link highlighted. Includes a cross-check of the cable's e-marker against the Thunderbolt controller, so a cable that under-reports itself is caught.</p>
+            <p>Per connection, see what the Mac port, the cable, and the device each support against what was actually negotiated, side by side, with the weak link highlighted. Includes a cross-check of the cable's e-marker against the Thunderbolt controller, so a cable that under-reports itself is caught. Pro screens open in place inside the popover, with an optional detach into their own window so a screen can stay open while you swap cables.</p>
           </div>
 
           <div class="feature">
@@ -911,6 +911,11 @@
 
             <tr class="group-header"><td colspan="3">Port diagnostics</td></tr>
             <tr>
+              <td class="feature-name">Negotiation Diagnostics (Mac port / cable / device breakdown)</td>
+              <td><span class="cross"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></td>
+              <td class="col-pro"><span class="tick"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></td>
+            </tr>
+            <tr>
               <td class="feature-name">Connection state and orientation</td>
               <td><span class="tick"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></td>
               <td class="col-pro"><span class="tick"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></td>
@@ -993,7 +998,7 @@
           <ul class="perks">
             <li>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              All 12 pro features unlocked immediately
+              All 13 pro features unlocked immediately
             </li>
             <li>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1044,7 +1049,7 @@
           </details>
           <details class="faq-item">
             <summary>Is the free version still available?</summary>
-            <div class="answer">Yes, always. The free app is open source, on GitHub, and installable via Homebrew. Everything in v0.9.0 and earlier stays free. Pro adds the deeper diagnostics on top.</div>
+            <div class="answer">Yes, always. The free app is open source, on GitHub, and installable via Homebrew. Everything that is free today stays free. Pro adds the deeper diagnostics on top.</div>
           </details>
           <details class="faq-item">
             <summary>What if I need a refund?</summary>
