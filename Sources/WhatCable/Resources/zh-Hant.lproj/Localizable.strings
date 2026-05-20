@@ -5,7 +5,7 @@
 "%lld devices removed" = "已移除 %lld 個裝置";
 "About %@" = "關於 %@";
 "Active" = "作用中";
-"Active cable electronics" = "主動式線材";
+"Active cable electronics" = "主動式線材電子元件";
 "All raw IOKit properties (%lld)" = "所有原始 IOKit 屬性（%lld）";
 "Behavior" = "行為";
 "Built by %@." = "由 %@ 建置。";
