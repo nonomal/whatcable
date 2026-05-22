@@ -1,4 +1,5 @@
 import SwiftUI
+import WhatCableAppKit
 
 /// Settings panel shown in place of the main popover content. Pushes a
 /// "Done" header and groups toggles by purpose. All preferences live on
@@ -72,11 +73,18 @@ struct SettingsForm: View {
                 Picker(String(localized: "Language", bundle: _appLocalizedBundle), selection: $settings.preferredLanguage) {
                     Text(String(localized: "System Default", bundle: _appLocalizedBundle)).tag("")
                     Divider()
+                    Text(verbatim: "Deutsch").tag("de")
                     Text(verbatim: "English").tag("en")
-                    Text(verbatim: "Հայերեն").tag("hy")
+                    Text(verbatim: "Español").tag("es")
+                    Text(verbatim: "Français").tag("fr")
                     Text(verbatim: "Italiano").tag("it")
+                    Text(verbatim: "Norsk Bokmål").tag("nb")
                     Text(verbatim: "Polski").tag("pl")
+                    Text(verbatim: "हिन्दी").tag("hi")
+                    Text(verbatim: "日本語").tag("ja")
                     Text(verbatim: "中文 (简体)").tag("zh-Hans")
+                    Text(verbatim: "中文 (繁體)").tag("zh-Hant")
+                    Text(verbatim: "Հայերեն").tag("hy")
                 }
                 .pickerStyle(.menu)
                 .padding(.top, 4)
@@ -84,9 +92,17 @@ struct SettingsForm: View {
             section(String(localized: "Notifications", bundle: _appLocalizedBundle)) {
                 Toggle(String(localized: "Notify on cable changes", bundle: _appLocalizedBundle), isOn: $settings.notifyOnChanges)
             }
+            TestKitSettingsSection()
             section(String(localized: "Pro", bundle: _appLocalizedBundle)) {
-                Link(String(localized: "Upgrade to WhatCable Pro", bundle: _appLocalizedBundle),
-                     destination: URL(string: "https://www.whatcable.uk/pro")!)
+                let builders = PluginRegistry.shared.settingsProSectionBuilders
+                if builders.isEmpty {
+                    Link(String(localized: "Upgrade to WhatCable Pro", bundle: _appLocalizedBundle),
+                         destination: URL(string: "https://www.whatcable.uk/pro")!)
+                } else {
+                    ForEach(builders.indices, id: \.self) { i in
+                        builders[i]()
+                    }
+                }
             }
         }
     }

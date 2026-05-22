@@ -1,0 +1,16 @@
+{
+  "name": "WhatCable",
+  "url": "https://www.whatcable.uk",
+  "tagline": "Know what your USB-C cable can really do",
+  "description": "Why is my MacBook charging slowly? WhatCable shows USB-C cable speed, charging power, and e-marker data in plain English. Free Mac app for Apple Silicon.",
+  "shortDescription": "A macOS menu bar app that explains USB-C cable speed, charging limits, e-marker data, and connected devices in plain English.",
+  "author": {
+    "name": "Darryl Morley",
+    "url": "https://github.com/darrylmorley"
+  },
+  "softwareVersion": "0.12.1",
+  "repoUrl": "https://github.com/darrylmorley/whatcable",
+  "downloadUrl": "https://github.com/darrylmorley/whatcable/releases/latest/download/WhatCable.zip",
+  "feedUrl": "https://www.whatcable.uk/blog/feed.xml",
+  "ogImage": "https://www.whatcable.uk/screenshot.webp"
+}

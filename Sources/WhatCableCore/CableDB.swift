@@ -39,12 +39,21 @@ public enum CableDB {
 
     /// Look up a known cable by its e-marker fingerprint. Returns
     /// nil when the cable isn't in our curated database.
+    ///
+    /// An all-zero fingerprint (VID 0, PID 0, Cable VDO 0) carries no
+    /// identifying bits at all and is shared by every fully-zeroed
+    /// budget cable. They all collapsed onto the single curated row
+    /// keyed on (0,0,0), mislabeling unrelated cables as one arbitrary
+    /// product. Refuse only this degenerate key. A zeroed VID/PID with
+    /// a specific non-zero Cable VDO still selects the curated entry
+    /// keyed on that VDO and is kept. See issue #161.
     public static func curatedCable(
         vid: Int,
         pid: Int,
         cableVDO: UInt32
     ) -> CuratedCable? {
-        store.cables[CableKey(vid: vid, pid: pid, cableVDO: cableVDO)]
+        if vid == 0 && pid == 0 && cableVDO == 0 { return nil }
+        return store.cables[CableKey(vid: vid, pid: pid, cableVDO: cableVDO)]
     }
 
     /// Number of vendor entries loaded. Exposed for tests.

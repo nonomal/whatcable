@@ -152,7 +152,7 @@ public final class PowerSourceWatcher: ObservableObject {
 
 extension PowerSourceWatcher {
     /// All power sources attached to a given port.
-    public func sources(for port: USBCPort) -> [PowerSource] {
+    public func sources(for port: AppleHPMInterface) -> [PowerSource] {
         guard let key = port.portKey else { return [] }
         return sources.filter { $0.portKey == key }
     }

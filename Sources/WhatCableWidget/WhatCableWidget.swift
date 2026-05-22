@@ -20,8 +20,8 @@ struct CableStatusWidget: Widget {
             CableWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Cable Status")
-        .description("See what your USB-C cables can do at a glance.")
+        .configurationDisplayName(Text(String(localized: "Cable Status", bundle: _coreLocalizedBundle)))
+        .description(Text(String(localized: "See what your USB-C cables can do at a glance.", bundle: _coreLocalizedBundle)))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

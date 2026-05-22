@@ -69,4 +69,31 @@ public struct USBDevice: Identifiable, Hashable {
         default: return "Unknown speed"
         }
     }
+
+    /// Whether this device is directly attached to the host controller port
+    /// (not behind a USB hub). LocationID bits 31-24 are the bus/controller
+    /// index; bits 23-0 are hub-path nibbles (left-to-right, each nibble is
+    /// one hop). A root device has exactly one non-zero nibble in the path.
+    /// This encoding is an undocumented Apple convention, stable since at
+    /// least Snow Leopard but not guaranteed by any public API.
+    public var isRootDevice: Bool {
+        let hubPath = locationID & 0x00FF_FFFF
+        var nonZeroNibbles = 0
+        for shift in stride(from: 0, to: 24, by: 4) {
+            if (hubPath >> shift) & 0xF != 0 { nonZeroNibbles += 1 }
+        }
+        return nonZeroNibbles == 1
+    }
+
+    /// USB-IF style label for SuperSpeed and above, matching the format
+    /// used by USB3Transport.speedLabel. Returns nil for USB 2.0 and below
+    /// or when speedRaw is unavailable.
+    public var usb3SpeedLabel: String? {
+        switch speedRaw {
+        case 3: return "USB 3.2 Gen 1 (5 Gbps)"
+        case 4: return "USB 3.2 Gen 2 (10 Gbps)"
+        case 5: return "USB 3.2 Gen 2x2 (20 Gbps)"
+        default: return nil
+        }
+    }
 }

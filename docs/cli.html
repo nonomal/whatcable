@@ -2,281 +2,470 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>WhatCable: CLI</title>
-    <meta
-      name="description"
-      content="Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal."
-    >
-    <link rel="canonical" href="https://www.whatcable.uk/cli">
-    <link rel="icon" href="icon.png" type="image/png">
-    <link rel="apple-touch-icon" href="icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>WhatCable CLI: USB-C Diagnostics in Your Terminal</title>
+<meta name="description" content="Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.">
 
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.whatcable.uk/cli">
-    <meta property="og:title" content="WhatCable: CLI">
-    <meta property="og:description" content="Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.">
-    <meta property="og:image" content="https://www.whatcable.uk/screenshot.webp">
+<link rel="canonical" href="https://www.whatcable.uk/cli">
+<link rel="icon" href="/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon.png">
 
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="WhatCable: CLI">
-    <meta name="twitter:description" content="Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.">
-    <meta name="twitter:image" content="https://www.whatcable.uk/screenshot.webp">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.whatcable.uk/cli">
+<meta property="og:title" content="WhatCable CLI: USB-C Diagnostics in Your Terminal">
+<meta property="og:description" content="Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.">
+<meta property="og:image" content="https://www.whatcable.uk/screenshot.webp">
+
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WhatCable CLI: USB-C Diagnostics in Your Terminal">
+<meta name="twitter:description" content="Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.">
+<meta name="twitter:image" content="https://www.whatcable.uk/screenshot.webp">
+
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #0e1620;
+    --ink-soft: #364152;
+    --muted: #6a7585;
+    --line: #e3e8ef;
+    --line-soft: #eef2f7;
+    --bg: #fafbfc;
+    --panel: #ffffff;
+    --accent: #0c8ca6;
+    --accent-strong: #0a7188;
+    --accent-soft: #e6f4f7;
+    --good: #0b8a5a;
+    --warn: #b67100;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+    --shadow-lg: 0 24px 50px rgba(15, 23, 42, 0.18);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  main { flex: 1 0 auto; }
+  footer { flex-shrink: 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+  pre { background: var(--line-soft); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
+  code { background: var(--line-soft); padding: 1px 6px; border-radius: 5px; }
+  pre code { background: none; padding: 0; }
+
+  .wrap {
+    width: min(720px, calc(100% - 40px));
+    margin: 0 auto;
+  }
+  .wrap-wide {
+    width: min(1120px, calc(100% - 40px));
+    margin: 0 auto;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(250, 251, 252, 0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    width: min(1120px, calc(100% - 40px));
+    margin: 0 auto;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .brand:hover { text-decoration: none; }
+  .mark {
+    width: 28px;
+    height: 28px;
+    display: block;
+    border-radius: 7px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .nav-links a { color: inherit; text-decoration: none; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav .button {
+    padding: 8px 14px;
+    min-height: 36px;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 8px;
+    font-weight: 600;
+    line-height: 1;
+  }
+  .nav .button.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .nav .button.secondary:hover { border-color: #c8d0db; }
+  .nav .button.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .nav .button.accent:hover { background: var(--accent-strong); }
+
+  main {
+    padding: 48px 0 80px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 32px;
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 32px 0 12px;
+  }
+  h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 24px 0 10px;
+  }
+  p {
+    margin: 0 0 14px;
+    color: var(--ink-soft);
+  }
+  ul, ol {
+    margin: 0 0 14px;
+    padding-left: 20px;
+    color: var(--ink-soft);
+  }
+  li { margin-bottom: 6px; }
+  blockquote {
+    margin: 18px 0;
+    padding: 12px 18px;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    color: var(--ink-soft);
+    border-radius: 0 8px 8px 0;
+  }
+  blockquote p:last-child { margin-bottom: 0; }
+  hr {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 32px 0;
+  }
+
+  /* Scrollable wrapper injected by the Eleventy wrapTables transform. */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 0 20px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .table-wrap table { margin: 0; border: none; border-radius: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    margin: 0 0 20px;
+  }
+  thead tr {
+    background: var(--line-soft);
+    border-bottom: 2px solid var(--line);
+  }
+  th {
+    text-align: left;
+    padding: 9px 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-soft);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--line-soft); }
+
+  /* Images in post body: markdown renders bare <img> not <figure>, so scope
+     the size constraint and chrome here rather than relying on figure img. */
+  .post-body img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    margin: 20px auto;
+  }
+
+  figure { margin: 20px 0; }
+  figure img {
+    display: block;
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  }
+  figcaption {
+    margin-top: 8px;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  .note {
+    padding: 16px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    margin-bottom: 14px;
+  }
+  .note strong { color: var(--ink); }
+
+  .pro-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+
+  .faq-section {
+    margin-top: 40px;
+  }
+  .faq-section h2 {
+    margin-bottom: 16px;
+  }
+  .faq-item {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .faq-item > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    font-weight: 600;
+    color: var(--ink);
+    position: relative;
+    padding-right: 44px;
+  }
+  .faq-item > summary::-webkit-details-marker { display: none; }
+  .faq-item > summary::after {
+    content: "+";
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  .faq-item[open] > summary::after {
+    content: "−";
+  }
+  .faq-item > summary:hover {
+    background: var(--line-soft);
+  }
+  .faq-answer {
+    padding: 0 18px 14px;
+    color: var(--ink-soft);
+  }
+  .faq-answer > :last-child { margin-bottom: 0; }
+
+  footer {
+    padding: 32px 0;
+    background: #0c1219;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13.5px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  footer .wrap-wide {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  footer a { color: rgba(255, 255, 255, 0.85); }
+  footer a:hover { color: #fff; }
+  footer .footer-links { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  footer .footer-links .sep { color: rgba(255, 255, 255, 0.3); }
+
+  @media (max-width: 720px) {
+    .nav-links a:not(.button):not([data-keep-mobile]) { display: none; }
+    .nav-links { gap: 12px; }
+    .nav .button { padding: 8px 12px; font-size: 13px; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 20px; }
+    footer .wrap-wide { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+
 
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "WhatCable CLI",
-      "description": "Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.",
-      "url": "https://www.whatcable.uk/cli",
-      "isPartOf": {
-        "@type": "WebSite",
-        "name": "WhatCable",
-        "url": "https://www.whatcable.uk"
-      }
-    }
-    </script>
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "WhatCable CLI",
+  "description": "Command-line interface for WhatCable. USB-C cable diagnostics, JSON output, watch mode, and cable reports from your terminal.",
+  "url": "https://www.whatcable.uk/cli",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "WhatCable",
+    "url": "https://www.whatcable.uk"
+  }
+}
+</script>
+<style>
+  main { padding: 48px 0 80px; }
+  h4.cli-subhead { margin: 18px 0 6px; font-size: 15px; font-weight: 600; }
+  .cli-page code {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #eef2f7;
+    font-size: 14px;
+  }
+  .cli-page pre {
+    margin: 0 0 14px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    background: #0c1219;
+    color: #d7e1ec;
+    font-size: 13.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    border: 1px solid #1c2632;
+  }
+  .cli-page pre code {
+    padding: 0;
+    border-radius: 0;
+    background: none;
+    font-size: inherit;
+    color: inherit;
+  }
+  .prompt { color: #5fc7d1; }
+  .comment { color: #6b7785; }
+  .ok { color: #69d99c; }
+  .warn { color: #ffd479; }
+  .dim { color: #6b7785; }
+  @media (max-width: 600px) {
+    .cli-page pre { font-size: 12px; padding: 16px; }
+  }
+</style>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        color-scheme: light;
-        --ink: #0e1620;
-        --ink-soft: #364152;
-        --muted: #6a7585;
-        --line: #e3e8ef;
-        --bg: #fafbfc;
-        --panel: #ffffff;
-        --accent: #0c8ca6;
-      }
-
-      * { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--ink);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        font-size: 16px;
-        line-height: 1.6;
-        -webkit-font-smoothing: antialiased;
-      }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-
-      .wrap {
-        width: min(720px, calc(100% - 40px));
-        margin: 0 auto;
-      }
-
-      .nav {
-        border-bottom: 1px solid var(--line);
-        background: var(--panel);
-      }
-      .nav-inner {
-        height: 64px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-      }
-      .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 700;
-        font-size: 16px;
-        color: var(--ink);
-        text-decoration: none;
-      }
-      .brand:hover { text-decoration: none; }
-      .mark {
-        width: 28px;
-        height: 28px;
-        display: block;
-        border-radius: 7px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
-      }
-      .nav-links {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        font-size: 14px;
-        color: var(--ink-soft);
-      }
-      .nav-links a { color: inherit; }
-      .nav-links a:hover { color: var(--ink); text-decoration: none; }
-      .nav .btn { display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1; text-decoration: none; }
-      .nav .btn-secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
-      .nav .btn-secondary:hover { border-color: #c8d0db; }
-      .nav .btn-accent { background: #0c8ca6; color: #fff; border: 1px solid #0c8ca6; }
-      .nav .btn-accent:hover { background: #0a7188; }
-
-      main {
-        padding: 48px 0 80px;
-      }
-      h1 {
-        font-size: 32px;
-        font-weight: 800;
-        letter-spacing: -0.01em;
-        margin: 0 0 8px;
-      }
-      .subtitle {
-        color: var(--muted);
-        font-size: 14px;
-        margin: 0 0 32px;
-      }
-      h2 {
-        font-size: 20px;
-        font-weight: 700;
-        margin: 36px 0 12px;
-      }
-      h3 {
-        font-size: 17px;
-        font-weight: 600;
-        margin: 24px 0 8px;
-      }
-      p {
-        margin: 0 0 14px;
-        color: var(--ink-soft);
-      }
-      ul {
-        margin: 0 0 14px;
-        padding-left: 20px;
-        color: var(--ink-soft);
-      }
-      li { margin-bottom: 6px; }
-      code {
-        padding: 1px 6px;
-        border-radius: 4px;
-        background: #eef2f7;
-        font-size: 14px;
-        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-      }
-      pre {
-        margin: 0 0 14px;
-        padding: 18px 20px;
-        border-radius: 10px;
-        background: #0c1219;
-        color: #d7e1ec;
-        font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-        font-size: 13.5px;
-        line-height: 1.7;
-        overflow-x: auto;
-        border: 1px solid #1c2632;
-      }
-      pre code {
-        padding: 0;
-        border-radius: 0;
-        background: none;
-        font-size: inherit;
-        color: inherit;
-      }
-      .prompt { color: #5fc7d1; }
-      .comment { color: #6b7785; }
-      .ok { color: #69d99c; }
-      .warn { color: #ffd479; }
-      .dim { color: #6b7785; }
-
-      .note {
-        padding: 16px 20px;
-        border-radius: 8px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        color: var(--ink-soft);
-        font-size: 14.5px;
-        margin-bottom: 14px;
-      }
-      .note strong { color: var(--ink); }
-
-      footer {
-        padding: 32px 0;
-        background: #0c1219;
-        color: rgba(255, 255, 255, 0.55);
-        font-size: 13.5px;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-      }
-      footer .wrap {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      footer a { color: rgba(255, 255, 255, 0.85); }
-      footer a:hover { color: #fff; }
-      @media (max-width: 600px) {
-        footer .wrap { flex-direction: column; align-items: flex-start; }
-      }
-    </style>
   </head>
   <body>
-    <header class="nav">
-      <div class="wrap nav-inner">
-        <a class="brand" href="/">
-          <img class="mark" src="icon.png" alt="" aria-hidden="true" width="28" height="28">
-          <span>WhatCable</span>
-        </a>
-        <nav class="nav-links">
-          <a href="/instructions">Docs</a>
-          <a href="/cli">CLI</a>
-          <a href="/cables">Cables</a>
-          <a class="btn btn-secondary" href="https://github.com/darrylmorley/whatcable">GitHub</a>
-          <a class="btn btn-accent" href="/pro">Get Pro</a>
-        </nav>
-      </div>
-    </header>
+    <nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <img class="mark" src="/icon.png" alt="" aria-hidden="true" width="28" height="28">
+      <span>WhatCable</span>
+    </a>
+    <div class="nav-links">
+      
+        <a href="/instructions" data-keep-mobile>Docs</a>
+      
+        <a href="/cli">CLI</a>
+      
+        <a href="/cables">Cables</a>
+      
+        <a href="/blog">Blog</a>
+      
+      
+        <a class="button secondary" href="https://github.com/darrylmorley/whatcable">GitHub</a>
+      
+        <a class="button accent" href="/pro">Get Pro</a>
+      
+    </div>
+  </div>
+</nav>
 
     <main>
-      <div class="wrap">
-        <h1>CLI</h1>
-        <p class="subtitle">USB-C diagnostics from your terminal. Same engine as the menu bar app.</p>
+  <div class="wrap">
+    <h1>CLI</h1>
+    <p class="subtitle">USB-C diagnostics from your terminal. Same engine as the menu bar app.</p>
+    <div class="cli-page">
 
-        <h2>Install</h2>
+<h2>Install</h2>
 
-        <h3>Homebrew (recommended)</h3>
-        <p>Homebrew installs the menu bar app and puts the <code>whatcable</code> CLI on your PATH automatically.</p>
+<h3>Homebrew (recommended)</h3>
+<p>Homebrew installs the menu bar app and puts the <code>whatcable</code> CLI on your PATH automatically.</p>
 <pre><code><span class="prompt">$</span> brew tap darrylmorley/whatcable
 <span class="prompt">$</span> brew install --cask whatcable</code></pre>
-        <p>After this, <code>whatcable</code> just works from any new terminal window.</p>
+<p>After this, <code>whatcable</code> just works from any new terminal window.</p>
 
-        <h3>Downloaded the .zip from GitHub?</h3>
-        <p>
-          The CLI is bundled inside the app, at:
-        </p>
+<h3>Downloaded the .zip from GitHub?</h3>
+<p>The CLI is bundled inside the app, at:</p>
 <pre><code>/Applications/WhatCable.app/Contents/Helpers/whatcable</code></pre>
-        <p>
-          You can run it from there directly, alias it, or symlink it. Pick whichever fits how you use Terminal.
-        </p>
+<p>You can run it from there directly, alias it, or symlink it. Pick whichever fits how you use Terminal.</p>
 
-        <h4 style="margin: 18px 0 6px; font-size: 15px; font-weight: 600;">Option 1: run the full path (no setup)</h4>
-        <p>Fine for one-off invocations:</p>
+<h4 class="cli-subhead">Option 1: run the full path (no setup)</h4>
+<p>Fine for one-off invocations:</p>
 <pre><code><span class="prompt">$</span> /Applications/WhatCable.app/Contents/Helpers/whatcable</code></pre>
 
-        <h4 style="margin: 18px 0 6px; font-size: 15px; font-weight: 600;">Option 2: shell alias (no <code>sudo</code> needed)</h4>
-        <p>Add this line to <code>~/.zshrc</code> (or <code>~/.bashrc</code>), then open a new terminal:</p>
+<h4 class="cli-subhead">Option 2: shell alias (no <code>sudo</code> needed)</h4>
+<p>Add this line to <code>~/.zshrc</code> (or <code>~/.bashrc</code>), then open a new terminal:</p>
 <pre><code>alias whatcable='/Applications/WhatCable.app/Contents/Helpers/whatcable'</code></pre>
 
-        <h4 style="margin: 18px 0 6px; font-size: 15px; font-weight: 600;">Option 3: symlink into your PATH</h4>
-        <p>Pick the directory that's already on your PATH. On Apple Silicon Macs that's usually <code>/opt/homebrew/bin</code>; on Intel Macs or with custom setups it's often <code>/usr/local/bin</code>. Both need <code>sudo</code>:</p>
+<h4 class="cli-subhead">Option 3: symlink into your PATH</h4>
+<p>Pick the directory that's already on your PATH. On Apple Silicon Macs that's usually <code>/opt/homebrew/bin</code>; on Intel Macs or with custom setups it's often <code>/usr/local/bin</code>. Both need <code>sudo</code>:</p>
 <pre><code><span class="comment"># Apple Silicon (Homebrew default)</span>
 <span class="prompt">$</span> sudo ln -s /Applications/WhatCable.app/Contents/Helpers/whatcable /opt/homebrew/bin/whatcable
 
 <span class="comment"># Intel / other</span>
 <span class="prompt">$</span> sudo ln -s /Applications/WhatCable.app/Contents/Helpers/whatcable /usr/local/bin/whatcable</code></pre>
-        <p>
-          If you'd rather not use <code>sudo</code>, create <code>~/bin</code>, add it to your PATH in <code>~/.zshrc</code>, and symlink there instead:
-        </p>
+<p>If you'd rather not use <code>sudo</code>, create <code>~/bin</code>, add it to your PATH in <code>~/.zshrc</code>, and symlink there instead:</p>
 <pre><code><span class="prompt">$</span> mkdir -p ~/bin
 <span class="prompt">$</span> ln -s /Applications/WhatCable.app/Contents/Helpers/whatcable ~/bin/whatcable
 <span class="prompt">$</span> echo 'export PATH="$HOME/bin:$PATH"' &gt;&gt; ~/.zshrc</code></pre>
 
-        <h2>Usage</h2>
+<h2>Usage</h2>
 
-        <h3>Basic scan</h3>
-        <p>Run <code>whatcable</code> (lowercase) with no flags to get a plain-English summary of every USB-C port.</p>
+<h3>Basic scan</h3>
+<p>Run <code>whatcable</code> (lowercase) with no flags to get a plain-English summary of every USB-C port.</p>
 <pre><code><span class="prompt">$</span> whatcable
 
 <span class="dim">USB-C Port 1</span>
@@ -289,40 +478,40 @@
   Cable: 3A, 60W, USB 2.0
   Device: External SSD, USB 10 Gbps</code></pre>
 
-        <h3>JSON output</h3>
-        <p>Use <code>--json</code> to get structured JSON. Pipe it into <code>jq</code> for scripting and automation.</p>
+<h3>JSON output</h3>
+<p>Use <code>--json</code> to get structured JSON. Pipe it into <code>jq</code> for scripting and automation.</p>
 <pre><code><span class="prompt">$</span> whatcable --json | jq '.ports[0].cable'</code></pre>
 
-        <h3>Watch mode</h3>
-        <p>
-          Use <code>--watch</code> to monitor ports in real time. The display updates as cables connect and disconnect.
-          Press <code>Ctrl+C</code> to stop.
-        </p>
+<h3>Watch mode</h3>
+<p>
+  Use <code>--watch</code> to monitor ports in real time. The display updates as cables connect and disconnect.
+  Press <code>Ctrl+C</code> to stop.
+</p>
 <pre><code><span class="prompt">$</span> whatcable --watch</code></pre>
-        <p>
-          In watch mode, the terminal clears and redraws on each change with a timestamp header.
-          Combine with <code>--json</code> for newline-delimited JSON (one object per change).
-        </p>
+<p>
+  In watch mode, the terminal clears and redraws on each change with a timestamp header.
+  Combine with <code>--json</code> for newline-delimited JSON (one object per change).
+</p>
 <pre><code><span class="prompt">$</span> whatcable --watch --json</code></pre>
 
-        <h3>Raw IOKit properties</h3>
-        <p>Use <code>--raw</code> to include the underlying IOKit properties alongside the summary. Useful for debugging or filing bug reports.</p>
+<h3>Raw IOKit properties</h3>
+<p>Use <code>--raw</code> to include the underlying IOKit properties alongside the summary. Useful for debugging or filing bug reports.</p>
 <pre><code><span class="prompt">$</span> whatcable --raw</code></pre>
 
-        <h3>Cable report</h3>
-        <p>
-          Use <code>--report</code> to generate a markdown report for each e-marked cable. It includes the cable's
-          vendor ID, product ID, capability flags, and a pre-filled GitHub issue URL.
-        </p>
+<h3>Cable report</h3>
+<p>
+  Use <code>--report</code> to generate a markdown report for each e-marked cable. It includes the cable's
+  vendor ID, product ID, capability flags, and a pre-filled GitHub issue URL.
+</p>
 <pre><code><span class="prompt">$</span> whatcable --report</code></pre>
-        <p>
-          If no e-marker data is available, the command tells you so. Two reasons that can happen:
-          either the cable genuinely doesn't have an e-marker chip (USB-PD doesn't require one below 3A),
-          or macOS hasn't asked for it yet (it only does that when negotiating above 3A,
-          so a 20W charger is unlikely to trigger the read). Try a higher-wattage charger if you're not sure.
-        </p>
+<p>
+  If no e-marker data is available, the command tells you so. Two reasons that can happen:
+  either the cable genuinely doesn't have an e-marker chip (USB-PD doesn't require one below 3A),
+  or macOS hasn't asked for it yet (it only does that when negotiating above 3A,
+  so a 20W charger is unlikely to trigger the read). Try a higher-wattage charger if you're not sure.
+</p>
 
-        <h2>All flags</h2>
+<h2>All flags</h2>
 <pre><code><span class="prompt">$</span> whatcable --help
 
 whatcable 0.10.1 -- What can this USB-C cable actually do?
@@ -337,38 +526,54 @@ Options:
   --version      Print version and exit
   -h, --help     Show this help and exit</code></pre>
 
-        <h2>Requirements</h2>
-        <ul>
-          <li>macOS 14 (Sonoma) or later.</li>
-          <li>Apple Silicon (M1 or later). Intel Macs don't expose USB-PD state through IOKit.</li>
-          <li>The WhatCable.app must be installed (the CLI binary lives inside the app bundle).</li>
-        </ul>
+<h2>Requirements</h2>
+<ul>
+  <li>macOS 14 (Sonoma) or later.</li>
+  <li>Apple Silicon (M1 or later). Intel Macs don't expose USB-PD state through IOKit.</li>
+  <li>The WhatCable.app must be installed (the CLI binary lives inside the app bundle).</li>
+</ul>
 
-        <div class="note">
-          <strong>New to WhatCable?</strong> See the <a href="/instructions">main docs</a> for what the app shows and how to configure it.
-        </div>
-      </div>
-    </main>
+<div class="note">
+  <strong>New to WhatCable?</strong> See the <a href="/instructions">main docs</a> for what the app shows and how to configure it.
+</div>
+
+</div>
+
+  </div>
+</main>
 
     <footer>
-      <div class="wrap">
-        <span>Built by <a href="https://github.com/darrylmorley">Darryl Morley</a>. MIT licensed.</span>
-        <span>
-          <a href="/instructions">Docs</a>
-          &nbsp;·&nbsp;
-          <a href="/cli">CLI</a>
-          &nbsp;·&nbsp;
-          <a href="/cables">Cables</a>
-          &nbsp;·&nbsp;
-          <a href="/pro">Pro</a>
-          &nbsp;·&nbsp;
-          <a href="/support">Support</a>
-          &nbsp;·&nbsp;
-          <a href="/privacy">Privacy</a>
-          &nbsp;·&nbsp;
-          <a href="https://github.com/darrylmorley/whatcable">View source on GitHub</a>
-        </span>
-      </div>
-    </footer>
+  <div class="wrap-wide">
+    <span>Built by <a href="https://github.com/darrylmorley">Darryl Morley</a>. MIT licensed.</span>
+    <span class="footer-links">
+      
+        <a href="/instructions">Docs</a>
+        <span class="sep">·</span>
+      
+        <a href="/cli">CLI</a>
+        <span class="sep">·</span>
+      
+        <a href="/cables">Cables</a>
+        <span class="sep">·</span>
+      
+        <a href="/blog">Blog</a>
+        <span class="sep">·</span>
+      
+        <a href="/pro">Pro</a>
+        <span class="sep">·</span>
+      
+        <a href="/support">Support</a>
+        <span class="sep">·</span>
+      
+        <a href="/privacy">Privacy</a>
+        <span class="sep">·</span>
+      
+        <a href="https://github.com/darrylmorley/whatcable">View source on GitHub</a>
+        
+      
+    </span>
+  </div>
+</footer>
+
   </body>
 </html>

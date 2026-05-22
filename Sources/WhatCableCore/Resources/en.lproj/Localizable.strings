@@ -23,6 +23,9 @@
 "Carrying DisplayPort video" = "Carrying DisplayPort video";
 "Carrying both data and DisplayPort video." = "Carrying both data and DisplayPort video.";
 "Charger advertises up to %lldW" = "Charger advertises up to %lldW";
+"Charger: %@" = "Charger: %@";
+"Charger: %@ %@" = "Charger: %1$@ %2$@";
+"Charger identified as %@" = "Charger identified as %@";
 "Charger and cable are well-matched." = "Charger and cable are well-matched.";
 "Charger can deliver up to %lldW, but this cable is only rated to carry %lldW. Replace the cable to charge faster." = "Charger can deliver up to %1$lldW, but this cable is only rated to carry %2$lldW. Replace the cable to charge faster.";
 "Charging" = "Charging";
@@ -112,6 +115,28 @@
 "smart cable" = "smart cable";
 "video" = "video";
 
+/* Cable speed / charger status strings (previously missing keys) */
+"20 Gbps capable" = "20 Gbps capable";
+"40 Gbps capable" = "40 Gbps capable";
+"80 Gbps capable" = "80 Gbps capable";
+"Charger connected. Battery is full, so the Mac isn't drawing power." = "Charger connected. Battery is full, so the Mac isn't drawing power.";
+"E-marker reports passive (no USB signal conditioning). Thunderbolt is negotiated separately by the controller." = "E-marker reports passive (no USB signal conditioning). Thunderbolt is negotiated separately by the controller.";
+"E-marker reports passive. This is normal for Thunderbolt cables where the active electronics handle Thunderbolt, not USB." = "E-marker reports passive. This is normal for Thunderbolt cables where the active electronics handle Thunderbolt, not USB.";
+"Per-port negotiation data is not available. Wattage is from the system-wide adapter reading." = "Per-port negotiation data is not available. Wattage is from the system-wide adapter reading.";
+"Plugged in · battery full" = "Plugged in · battery full";
+"Try a higher-wattage charger to identify the cable." = "Try a higher-wattage charger to identify the cable.";
+"USB4 Gen 3 (40 Gbps, Thunderbolt 4 class)" = "USB4 Gen 3 (40 Gbps, Thunderbolt 4 class)";
+"USB4 Gen 4 (80 Gbps, Thunderbolt 5 class)" = "USB4 Gen 4 (80 Gbps, Thunderbolt 5 class)";
+
+/* DisplayPort lane labels, connected-device variants, pin-diagram Data label */
+"2 DP lanes + USB3 data" = "2 DP lanes + USB3 data";
+"4 DP lanes (no USB3 alongside video)" = "4 DP lanes (no USB3 alongside video)";
+"Carrying DisplayPort video (%@)" = "Carrying DisplayPort video (%@)";
+"Connected device: %@" = "Connected device: %@";
+"Connected device: %@, %@ (%@)" = "Connected device: %1$@, %2$@ (%3$@)";
+"Data" = "Data";
+"DisplayPort alt mode" = "DisplayPort alt mode";
+
 /* Pro plugin UI strings */
 "%@ (spec, not measured)" = "%@ (spec, not measured)";
 "%@ Diagnostics" = "%@ Diagnostics";
@@ -184,7 +209,7 @@
 "Mode" = "Mode";
 "Monitor" = "Monitor";
 "Native" = "Native";
-"Negotiated max. Live per-port metering is not available on this hardware." = "Negotiated max. Live per-port metering is not available on this hardware.";
+"Port maximum. Live per-port metering is not available on this hardware." = "Port maximum. Live per-port metering is not available on this hardware.";
 "No" = "No";
 "No PD contract data" = "No PD contract data";
 "No PD events" = "No PD events";
@@ -213,7 +238,6 @@
 "Power (W)" = "Power (W)";
 "Power Contract" = "Power Contract";
 "Power Monitor" = "Power Monitor";
-"Power Monitor requires WhatCable Pro." = "Power Monitor requires WhatCable Pro.";
 "Power delivery parameters changed (voltage, current, or power role)." = "Power delivery parameters changed (voltage, current, or power role).";
 "Power path status changed. Covers VBUS voltage, current draw, and source/sink transitions." = "Power path status changed. Covers VBUS voltage, current draw, and source/sink transitions.";
 "Power role swap complete" = "Power role swap complete";
@@ -266,7 +290,6 @@
 "Voltage" = "Voltage";
 "Voltage (V)" = "Voltage (V)";
 "WhatCable Pro" = "WhatCable Pro";
-"WhatCable Pro required" = "WhatCable Pro required";
 "Year of manufacture" = "Year of manufacture";
 "Yes" = "Yes";
 "cable resistance estimate" = "cable resistance estimate";
@@ -280,3 +303,62 @@
 "Rate %lld" = "Rate %lld";
 "Type %lld" = "Type %lld";
 "Variable, %@ minimum @ %@, %@ minimum" = "Variable, %1$@ minimum @ %2$@, %3$@ minimum";
+
+/* Pro plugin strings missing from prior export */
+"Enter Licence Key…" = "Enter Licence Key…";
+"Negotiated PD contract. This Mac doesn't report live per-port draw, so this is the agreed maximum, not a live measurement." = "Negotiated PD contract. This Mac doesn't report live per-port draw, so this is the agreed maximum, not a live measurement.";
+"No power data for this port right now." = "No power data for this port right now.";
+"Upgrade to WhatCable Pro" = "Upgrade to WhatCable Pro";
+"not reported in this state" = "not reported in this state";
+
+/* Widget strings */
+"Cable Status" = "Cable Status";
+"No cable data" = "No cable data";
+"Open WhatCable to start monitoring." = "Open WhatCable to start monitoring.";
+"See what your USB-C cables can do at a glance." = "See what your USB-C cables can do at a glance.";
+
+/* Negotiation diagnostics + Pro UX (PR #55). English; non-English to be refined by the community translation flow. */
+"The cable's own e-marker under-reports its speed; the Thunderbolt controller confirms it is faster." = "The cable's own e-marker under-reports its speed; the Thunderbolt controller confirms it is faster.";
+"Running at %@" = "Running at %@";
+"There's no cable e-marker or controller data, and no port or device capability to compare against, so we can't tell whether the cable is the limit." = "There's no cable e-marker or controller data, and no port or device capability to compare against, so we can't tell whether the cable is the limit.";
+"This cable has no e-marker and no controller data, so we can't tell whether it is the limit." = "This cable has no e-marker and no controller data, so we can't tell whether it is the limit.";
+"Running slower than expected (%@)" = "Running slower than expected (%@)";
+"The parts we can see all support %@ or more, but the link came up slower. Reseating the cable or trying another port may help." = "The parts we can see all support %@ or more, but the link came up slower. Reseating the cable or trying another port may help.";
+"Running at full data speed (%@)" = "Running at full data speed (%@)";
+"Nothing is being held back: the parts we can see all support this speed." = "Nothing is being held back: the parts we can see all support this speed.";
+"Cable is limiting data speed" = "Cable is limiting data speed";
+"The Mac and device can do %@, but the cable only carries %@. A faster cable would unlock full speed." = "The Mac and device can do %@, but the cable only carries %@. A faster cable would unlock full speed.";
+"This Mac port limits data speed" = "This Mac port limits data speed";
+"The cable and device can do %@, but this port maxes out at %@." = "The cable and device can do %@, but this port maxes out at %@.";
+"Device runs at %@" = "Device runs at %@";
+"This is the fastest the connected device supports. It is not a cable problem." = "This is the fastest the connected device supports. It is not a cable problem.";
+"Battery full, not charging" = "Battery full, not charging";
+"Charger and cable are fine. The Mac will draw up to %lldW when it needs to." = "Charger and cable are fine. The Mac will draw up to %lldW when it needs to.";
+"Negotiation Diagnostics" = "Negotiation Diagnostics";
+"What each link can do, and where the bottleneck is." = "What each link can do, and where the bottleneck is.";
+"No Connections" = "No Connections";
+"Plug a cable into a port to see what is limiting it." = "Plug a cable into a port to see what is limiting it.";
+"Nothing to diagnose on this port yet (no active power or data link)." = "Nothing to diagnose on this port yet (no active power or data link).";
+"Data speed" = "Data speed";
+"Display links are not analysed yet." = "Display links are not analysed yet.";
+"Mac port" = "Mac port";
+"Cable" = "Cable";
+"Device" = "Device";
+"Negotiated" = "Negotiated";
+"Charger" = "Charger";
+"bottleneck" = "bottleneck";
+"Cable signals disagree" = "Cable signals disagree";
+"an unknown speed" = "an unknown speed";
+"a higher speed" = "a higher speed";
+"The cable's own e-marker reports %@, but the Thunderbolt controller negotiated %@. This is common on active Thunderbolt cables that declare themselves passive. The controller's reading is the one used above." = "The cable's own e-marker reports %@, but the Thunderbolt controller negotiated %@. This is common on active Thunderbolt cables that declare themselves passive. The controller's reading is the one used above.";
+
+/* Pro overview screen + footer pill (Pro funnel). English; non-English are parity placeholders to be refined by the community translation flow. */
+"Cable Diagnostics" = "Cable Diagnostics";
+"Deep per-port pin maps, plug orientation, and protocol detail." = "Deep per-port pin maps, plug orientation, and protocol detail.";
+"Licence Key" = "Licence Key";
+"Live MagSafe pin layout for charging and diagnostics." = "Live MagSafe pin layout for charging and diagnostics.";
+"Live multi-port power graphs and event history." = "Live multi-port power graphs and event history.";
+"MagSafe pin diagrams" = "MagSafe pin diagrams";
+"Manage Licence…" = "Manage Licence…";
+"See exactly what each link can do, and where the bottleneck is." = "See exactly what each link can do, and where the bottleneck is.";
+"Unlock deep diagnostics, live power graphs, and per-port history. One-off licence, no subscription." = "Unlock deep diagnostics, live power graphs, and per-port history. One-off licence, no subscription.";

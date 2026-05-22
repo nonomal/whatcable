@@ -1,0 +1,113 @@
+---
+permalink: /success.html
+layout: base.njk
+documentTitle: "WhatCable Pro - Purchase Complete"
+description: "Activate your WhatCable Pro licence key."
+robots: noindex
+twitterCard: summary
+extraHead: |
+  <style>
+    .success-main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+    .success-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      padding: 48px;
+      max-width: 540px;
+      width: 100%;
+      text-align: center;
+    }
+    .success-card .check {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #e6f4ee;
+      color: var(--good);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .success-card .check svg { width: 28px; height: 28px; }
+    .success-card h1 { font-size: 24px; font-weight: 700; margin: 0 0 12px; color: var(--ink); }
+    .success-card .subtitle { color: var(--ink-soft); margin: 0 0 32px; font-size: 15px; }
+    .steps {
+      text-align: left;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .steps h2 {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0 0 16px;
+    }
+    .step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+    .step:last-child { margin-bottom: 0; }
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
+    .step-text strong { color: var(--ink); font-weight: 600; }
+    .back { font-size: 14px; color: var(--muted); margin: 0; }
+    .back a { color: var(--accent); font-weight: 500; }
+    .back a:hover { color: var(--accent-strong); }
+  </style>
+---
+<main class="success-main">
+  <div class="success-card">
+    <div class="check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+
+    <h1>You're all set</h1>
+    <p class="subtitle">Your WhatCable Pro licence key is on its way to your inbox. Check your email and follow these steps to activate.</p>
+
+    <div class="steps">
+      <h2>How to activate</h2>
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Check your email</strong> for a message from noreply@whatcable.uk with your licence key.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Right-click WhatCable</strong> in the menu bar and click <strong>Licence</strong>.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Paste your key</strong> into the licence field and activate.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text"><strong>Pro features unlock</strong> immediately. Works on up to 2 Macs.</div>
+      </div>
+    </div>
+
+    <p class="back">No email after a few minutes? Check your spam folder or <a href="/support">contact support</a>.</p>
+  </div>
+</main>

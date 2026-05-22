@@ -1,0 +1,10 @@
+---
+layout: base.njk
+---
+<main>
+  <div class="wrap">
+    {% if title %}<h1>{{ title }}</h1>{% endif %}
+    {% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
+    {{ content | safe }}
+  </div>
+</main>

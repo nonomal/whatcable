@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    {% include "head.njk" %}
+    {% if extraHead %}{{ extraHead | safe }}{% endif %}
+  </head>
+  <body>
+    {% include "nav.njk" %}
+    {{ content | safe }}
+    {% include "footer.njk" %}
+  </body>
+</html>

@@ -1,0 +1,16 @@
+<nav class="nav" aria-label="Primary">
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <img class="mark" src="/icon.png" alt="" aria-hidden="true" width="28" height="28">
+      <span>{{ site.name }}</span>
+    </a>
+    <div class="nav-links">
+      {% for item in nav.primary %}
+        <a href="{{ item.href }}"{% if item.label == 'Docs' %} data-keep-mobile{% endif %}>{{ item.label }}</a>
+      {% endfor %}
+      {% for btn in nav.buttons %}
+        <a class="button {{ btn.style }}" href="{{ btn.href }}">{{ btn.label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</nav>

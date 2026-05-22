@@ -68,7 +68,7 @@ extension PowerSource {
     }
 }
 
-extension USBCPort {
+extension AppleHPMInterface {
     public var portKey: String? {
         guard let n = portNumber else { return nil }
         let rawType: Int

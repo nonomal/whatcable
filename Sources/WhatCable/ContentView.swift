@@ -69,12 +69,13 @@ extension View {
 }
 
 struct ContentView: View {
-    @StateObject private var portWatcher = USBCPortWatcher()
+    @StateObject private var portWatcher = AppleHPMInterfaceWatcher()
     @StateObject private var deviceWatcher = USBWatcher()
     @StateObject private var powerWatcher = PowerSourceWatcher()
-    @StateObject private var pdWatcher = PDIdentityWatcher()
-    @StateObject private var tbWatcher = ThunderboltWatcher()
+    @StateObject private var pdWatcher = USBPDSOPWatcher()
+    @StateObject private var tbWatcher = IOIOThunderboltSwitchWatcher()
     @StateObject private var usb3Watcher = USB3TransportWatcher()
+    @StateObject private var trmWatcher = TRMTransportWatcher()
     @EnvironmentObject private var refresh: RefreshSignal
     @ObservedObject private var settings = AppSettings.shared
     @ObservedObject private var updates = UpdateChecker.shared
@@ -86,14 +87,36 @@ struct ContentView: View {
         settings.showTechnicalDetails || refresh.optionHeld
     }
 
-    var body: some View {
-        Group {
-            if refresh.showSettings {
-                SettingsView(dismiss: { refresh.showSettings = false })
-            } else {
-                mainContent
+    @ViewBuilder
+    private var rootContent: some View {
+        if let route = refresh.activeProScreen,
+           let screen = PluginRegistry.shared.proScreen(id: route.id, portCard: route.portCard) {
+            ProScreenContainer(
+                isMenuBarMode: settings.useMenuBarMode,
+                isPinned: refresh.keepOpen,
+                onTogglePin: { refresh.keepOpen.toggle() },
+                onBack: { refresh.activeProScreen = nil },
+                onDetach: {
+                    DetachedProWindowManager.shared.open(route: route)
+                    refresh.activeProScreen = nil
+                }
+            ) {
+                screen
             }
+        } else if refresh.showSettings {
+            SettingsView(dismiss: { refresh.showSettings = false })
+        } else {
+            mainContent
         }
+    }
+
+    var body: some View {
+        rootContent
+        // Width: wide enough for the widest Pro screen's own minWidth
+        // (Negotiation 560, Power Monitor 520, Cable Diagnostics 500) so
+        // content never overflows and clips. Height stays content-fit so a
+        // near-empty popover isn't half the screen (issue #159).
+        .frame(minWidth: 560, idealWidth: 560, maxWidth: 760, minHeight: 200, maxHeight: 760)
         .environment(\.fontScale, settings.fontSize)
         .onAppear {
             portWatcher.start()
@@ -102,8 +125,9 @@ struct ContentView: View {
             pdWatcher.start()
             tbWatcher.start()
             usb3Watcher.start()
+            trmWatcher.start()
             startPortPoll()
-            isDesktopMac = SmartBatteryReader.read().isDesktopMac
+            isDesktopMac = AppleSmartBatteryReader.read().isDesktopMac
         }
         .onDisappear {
             portRefreshTask?.cancel()
@@ -116,6 +140,7 @@ struct ContentView: View {
             pdWatcher.stop()
             tbWatcher.stop()
             usb3Watcher.stop()
+            trmWatcher.stop()
         }
         .onChange(of: refresh.tick) { _, _ in
             portWatcher.refresh()
@@ -123,6 +148,7 @@ struct ContentView: View {
             pdWatcher.refresh()
             tbWatcher.refresh()
             usb3Watcher.refresh()
+            trmWatcher.refresh()
         }
         // Port controller services don't fire IOKit match notifications when
         // their connection state flips, so we re-poll the port watcher
@@ -133,6 +159,15 @@ struct ContentView: View {
         .onChange(of: deviceWatcher.devices) { _, _ in scheduleLivePortRefresh() }
         .onChange(of: powerWatcher.sources) { _, _ in scheduleLivePortRefresh() }
         .onChange(of: pdWatcher.identities) { _, _ in scheduleLivePortRefresh() }
+        // If a Pro screen is re-opened while it's already detached into
+        // its own window, focus that window instead of also showing it
+        // in-place, so it's never in two places at once.
+        .onChange(of: refresh.activeProScreen?.id) { _, newID in
+            guard newID != nil, let route = refresh.activeProScreen else { return }
+            if DetachedProWindowManager.shared.focusIfOpen(route: route) {
+                refresh.activeProScreen = nil
+            }
+        }
     }
 
     private func scheduleLivePortRefresh() {
@@ -156,7 +191,7 @@ struct ContentView: View {
     /// IOKit interest notifications when their connection state flips, and
     /// covers state changes that happen outside the burst window triggered
     /// by scheduleLivePortRefresh. The conditional assignment in
-    /// USBCPortWatcher.refresh() means polls are free when nothing changed.
+    /// AppleHPMInterfaceWatcher.refresh() means polls are free when nothing changed.
     private func startPortPoll() {
         portPollTask?.cancel()
         portPollTask = Task { @MainActor in
@@ -195,18 +230,31 @@ struct ContentView: View {
                     nothingConnectedState
                 }
             } else {
+                let activePortCount = portWatcher.ports.filter { $0.connectionActive == true }.count
+                let adapter = SystemPower.currentAdapter()
+                let batteryFull = SystemPower.batteryFullyCharged()
                 ScrollView {
                     VStack(spacing: 12) {
                         ForEach(visiblePorts) { port in
+                            let portSources = powerWatcher.sources(for: port)
+                            let wattageSource = ChargerWattageSource.resolve(
+                                portSources: portSources,
+                                activePortCount: activePortCount,
+                                adapter: adapter
+                            )
                             PortCard(
                                 port: port,
                                 devices: matchingDevices(for: port),
-                                powerSources: powerWatcher.sources(for: port),
+                                powerSources: portSources,
                                 identities: pdWatcher.identities(for: port),
                                 thunderboltSwitches: tbWatcher.switches,
                                 usb3Transports: usb3Watcher.transports(for: port),
                                 isLive: isPortLive(port),
-                                showAdvanced: showAdvanced
+                                showAdvanced: showAdvanced,
+                                cioCapability: trmWatcher.cioCapabilities.first { $0.portKey == port.portKey },
+                                chargerWattageSource: wattageSource,
+                                batteryFullyCharged: batteryFull,
+                                adapter: adapter
                             )
                         }
                     }
@@ -222,15 +270,21 @@ struct ContentView: View {
         HStack {
             Image(systemName: "cable.connector.horizontal")
                 .scaledFont(.title2)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(AppInfo.name).scaledFont(.headline, weight: .bold)
-                Text(AppInfo.tagline)
-                    .scaledFont(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            Text(AppInfo.name).scaledFont(.headline, weight: .bold)
             Spacer()
             ForEach(Array(PluginRegistry.shared.headerButtonBuilders.enumerated()), id: \.offset) { _, builder in
                 builder()
+            }
+            if settings.useMenuBarMode {
+                Button {
+                    refresh.keepOpen.toggle()
+                } label: {
+                    Image(systemName: refresh.keepOpen ? "pin.fill" : "pin")
+                }
+                .buttonStyle(.borderless)
+                .help(refresh.keepOpen
+                    ? String(localized: "Unpin (popover closes when you click away)", bundle: _appLocalizedBundle)
+                    : String(localized: "Keep window open", bundle: _appLocalizedBundle))
             }
             Button {
                 refresh.bump()
@@ -273,6 +327,9 @@ struct ContentView: View {
                 .scaledFont(.caption)
                 .foregroundStyle(.tertiary)
             Text(verbatim: "·").scaledFont(.caption).foregroundStyle(.secondary)
+            ForEach(Array(PluginRegistry.shared.footerButtonBuilders.enumerated()), id: \.offset) { _, builder in
+                builder()
+            }
             Button(String(localized: "Quit", bundle: _appLocalizedBundle)) { NSApplication.shared.terminate(nil) }
                 .buttonStyle(.borderless)
                 .scaledFont(.caption)
@@ -317,7 +374,7 @@ struct ContentView: View {
 
     /// Live-signal check delegating to the pure helper in `WhatCableCore`,
     /// so the same rules apply to both the GUI and any test harness.
-    private func isPortLive(_ port: USBCPort) -> Bool {
+    private func isPortLive(_ port: AppleHPMInterface) -> Bool {
         WhatCableCore.isPortLive(
             port: port,
             powerSources: powerWatcher.sources(for: port),
@@ -344,7 +401,7 @@ struct ContentView: View {
     /// device onto the port. Showing all devices on every active USB port
     /// is worse than showing none, and it caused the bug that issue #21
     /// reported.
-    private func matchingDevices(for port: USBCPort) -> [USBDevice] {
+    private func matchingDevices(for port: AppleHPMInterface) -> [USBDevice] {
         port.matchingDevices(from: deviceWatcher.devices)
     }
 }
@@ -415,11 +472,11 @@ struct UpdateBanner: View {
 // MARK: - Port card
 
 struct PortCard: View {
-    let port: USBCPort
+    let port: AppleHPMInterface
     let devices: [USBDevice]
     let powerSources: [PowerSource]
-    let identities: [PDIdentity]
-    let thunderboltSwitches: [ThunderboltSwitch]
+    let identities: [USBPDSOP]
+    let thunderboltSwitches: [IOThunderboltSwitch]
     let usb3Transports: [USB3Transport]
     /// Authoritative connection state derived from the live IOKit watchers,
     /// passed in from the parent so we don't have to consult them from here
@@ -427,8 +484,15 @@ struct PortCard: View {
     /// `port.connectionActive` property.
     let isLive: Bool
     let showAdvanced: Bool
+    let cioCapability: CIOCableCapability?
+    let chargerWattageSource: ChargerWattageSource
+    let batteryFullyCharged: Bool?
+    /// System-wide adapter info from `SystemPower.currentAdapter()`.
+    /// Threaded through so the "Charger: <Manufacturer> <Name>" bullet
+    /// can fire on the active charging port.
+    let adapter: AdapterInfo?
 
-    @State private var reportingCable: PDIdentity?
+    @State private var reportingCable: USBPDSOP?
 
     var summary: PortSummary {
         PortSummary(
@@ -438,13 +502,17 @@ struct PortCard: View {
             devices: devices,
             thunderboltSwitches: thunderboltSwitches,
             usb3Transports: usb3Transports,
-            isConnectedOverride: isLive
+            cioCapability: cioCapability,
+            isConnectedOverride: isLive,
+            chargerWattageSource: chargerWattageSource,
+            batteryFullyCharged: batteryFullyCharged,
+            adapter: adapter
         )
     }
 
     /// Switches in the chain from this port's host root to the deepest
     /// connected device. Empty if the port doesn't map to any TB switch.
-    var thunderboltChain: [ThunderboltSwitch] {
+    var thunderboltChain: [IOThunderboltSwitch] {
         guard let socketID = ThunderboltTopology.socketID(fromServiceName: port.serviceName),
               let root = ThunderboltTopology.hostRoot(forSocketID: socketID, in: thunderboltSwitches) else {
             return []
@@ -452,7 +520,7 @@ struct PortCard: View {
         return ThunderboltTopology.chain(from: root, in: thunderboltSwitches)
     }
 
-    private var cableEmarker: PDIdentity? {
+    private var cableEmarker: USBPDSOP? {
         identities.first { $0.endpoint == .sopPrime || $0.endpoint == .sopDoublePrime }
     }
 
@@ -469,9 +537,11 @@ struct PortCard: View {
                         .foregroundStyle(.secondary)
                     Text(summary.headline)
                         .scaledFont(.title3, weight: .bold)
-                    Text(summary.subtitle)
-                        .scaledFont(.callout)
-                        .foregroundStyle(.secondary)
+                    if !summary.subtitle.isEmpty {
+                        Text(summary.subtitle)
+                            .scaledFont(.callout)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 let ctx = PortCardContext(
@@ -487,6 +557,11 @@ struct PortCard: View {
                         view
                     }
                 }
+            }
+
+            if let diag = ChargingDiagnostic(port: port, sources: powerSources, identities: identities, wattageSource: chargerWattageSource, batteryFullyCharged: batteryFullyCharged) {
+                DiagnosticBanner(diagnostic: diag)
+                    .padding(.leading, 48)
             }
 
             if !summary.bullets.isEmpty {
@@ -515,8 +590,15 @@ struct PortCard: View {
                 .padding(.leading, 48)
             }
 
-            if let diag = ChargingDiagnostic(port: port, sources: powerSources, identities: identities) {
-                DiagnosticBanner(diagnostic: diag)
+            if let dataDiag = DataLinkDiagnostic(
+                port: port,
+                identities: identities,
+                devices: devices,
+                usb3Transports: usb3Transports,
+                cio: cioCapability,
+                thunderboltSwitches: thunderboltSwitches
+            ) {
+                DataLinkBanner(diagnostic: dataDiag)
                     .padding(.leading, 48)
             }
 
@@ -558,7 +640,7 @@ struct PortCard: View {
         .padding(14)
         .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
         .sheet(item: $reportingCable) { cable in
-            CableReportSheet(cableIdentity: cable) {
+            CableReportSheet(cableIdentity: cable, cioCapability: cioCapability) {
                 reportingCable = nil
             }
         }
@@ -586,6 +668,77 @@ struct DiagnosticBanner: View {
                 .opacity(0.1),
             in: RoundedRectangle(cornerRadius: 8)
         )
+    }
+}
+
+struct DataLinkBanner: View {
+    let diagnostic: DataLinkDiagnostic
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: diagnostic.icon)
+                .foregroundStyle(diagnostic.isWarning ? Color.orange : Color.green)
+                .scaledFont(.callout)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(diagnostic.summary).scaledFont(.callout, weight: .bold)
+                Text(diagnostic.detail).scaledFont(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(10)
+        .background(
+            (diagnostic.isWarning ? Color.orange : Color.green)
+                .opacity(0.1),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+    }
+}
+
+/// Thin chrome around an in-place Pro screen: a Back button to return to
+/// the main content, and (menu-bar mode only) the pin toggle so the
+/// popover can be kept open while plugging cables in and out. The screen
+/// keeps its own header/title below this bar.
+struct ProScreenContainer<Content: View>: View {
+    let isMenuBarMode: Bool
+    let isPinned: Bool
+    let onTogglePin: () -> Void
+    let onBack: () -> Void
+    let onDetach: () -> Void
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onBack) {
+                    Label(
+                        String(localized: "Back", bundle: _appLocalizedBundle),
+                        systemImage: "chevron.left"
+                    )
+                    .scaledFont(.callout)
+                }
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.escape, modifiers: [])
+                Spacer()
+                if isMenuBarMode {
+                    Button(action: onDetach) {
+                        Image(systemName: "macwindow")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(String(localized: "Open in a separate window", bundle: _appLocalizedBundle))
+                    Button(action: onTogglePin) {
+                        Image(systemName: isPinned ? "pin.fill" : "pin")
+                    }
+                    .buttonStyle(.borderless)
+                    .help(isPinned
+                        ? String(localized: "Unpin (popover closes when you click away)", bundle: _appLocalizedBundle)
+                        : String(localized: "Keep window open", bundle: _appLocalizedBundle))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            Divider()
+            content
+        }
     }
 }
 
@@ -622,9 +775,9 @@ struct PowerSourceList: View {
 }
 
 struct AdvancedPortDetails: View {
-    let port: USBCPort
-    let cableEmarker: PDIdentity?
-    let thunderboltChain: [ThunderboltSwitch]
+    let port: AppleHPMInterface
+    let cableEmarker: USBPDSOP?
+    let thunderboltChain: [IOThunderboltSwitch]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -741,7 +894,7 @@ struct ActiveCableVDO2Section: View {
 /// downstream lane port's link state for each hop. Hidden behind the
 /// existing "show technical details" toggle.
 struct ThunderboltFabricSection: View {
-    let chain: [ThunderboltSwitch]
+    let chain: [IOThunderboltSwitch]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -754,7 +907,7 @@ struct ThunderboltFabricSection: View {
     }
 
     @ViewBuilder
-    private func hopRow(_ sw: ThunderboltSwitch, index: Int) -> some View {
+    private func hopRow(_ sw: IOThunderboltSwitch, index: Int) -> some View {
         let indent = String(repeating: "  ", count: index)
         let arrow = index == 0 ? "" : "↳ "
         let name = sw.isHostRoot ? String(localized: "Host (\(sw.className))", bundle: _appLocalizedBundle) : ThunderboltLabels.deviceName(for: sw)

@@ -1,0 +1,17 @@
+{
+  "name": "whatcable-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Static site generator for whatcable.uk. Eleventy builds src/ into docs/.",
+  "scripts": {
+    "site:build": "eleventy",
+    "site:serve": "eleventy --serve",
+    "site:full": "bash scripts/build-site.sh"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.0.0",
+    "@11ty/eleventy-plugin-rss": "^2.0.2",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0"
+  }
+}

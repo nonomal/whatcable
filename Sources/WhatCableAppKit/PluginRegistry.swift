@@ -27,6 +27,11 @@ public final class PluginRegistry {
         headerButtonBuilders.append(headerButton)
     }
 
+    public private(set) var footerButtonBuilders: [() -> AnyView] = []
+    public func register(footerButton: @escaping () -> AnyView) {
+        footerButtonBuilders.append(footerButton)
+    }
+
     public private(set) var portCardTrailingBuilders: [(PortCardContext) -> AnyView?] = []
     public func register(portCardTrailing: @escaping (PortCardContext) -> AnyView?) {
         portCardTrailingBuilders.append(portCardTrailing)
@@ -40,5 +45,23 @@ public final class PluginRegistry {
     public private(set) var cliCommands: [CLICommand] = []
     public func register(cliCommand: CLICommand) {
         cliCommands.append(cliCommand)
+    }
+
+    public private(set) var settingsProSectionBuilders: [() -> AnyView] = []
+    public func register(settingsProSection: @escaping () -> AnyView) {
+        settingsProSectionBuilders.append(settingsProSection)
+    }
+
+    /// Full-surface Pro screens, keyed by id. Rendered in place of the
+    /// main content (a drill-down, like Settings), not in a separate
+    /// window. The optional `PortCardContext` is supplied for screens
+    /// scoped to one port (Cable Diagnostics); global screens ignore it.
+    public typealias ProScreenBuilder = (PortCardContext?) -> AnyView
+    public private(set) var proScreenBuilders: [String: ProScreenBuilder] = [:]
+    public func register(proScreen id: String, builder: @escaping ProScreenBuilder) {
+        proScreenBuilders[id] = builder
+    }
+    public func proScreen(id: String, portCard: PortCardContext?) -> AnyView? {
+        proScreenBuilders[id].map { $0(portCard) }
     }
 }

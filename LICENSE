@@ -1,3 +1,18 @@
+WhatCable Licensing
+===================
+
+This repository contains both MIT-licensed source code and proprietary source
+code. The MIT licence reproduced below is the default for files in this
+repository.
+
+Any subdirectory containing its own LICENSE file is governed by that file's
+terms, not by the MIT licence below. In particular, the source code under
+Sources/WhatCablePlugins/ in the private development repository is proprietary
+and all rights are reserved; see Sources/WhatCablePlugins/LICENSE for the
+applicable terms when that subtree is present.
+
+----
+
 MIT License
 
 Copyright (c) 2026 Darryl Morley

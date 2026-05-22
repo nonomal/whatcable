@@ -1,0 +1,288 @@
+---
+permalink: /support.html
+layout: base.njk
+documentTitle: "WhatCable Pro - Support"
+description: "Pro support form and common questions for WhatCable Pro licence holders."
+robots: noindex
+twitterCard: summary
+extraHead: |
+  <style>
+    .support-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+    .support-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      padding: 48px;
+      max-width: 540px;
+      width: 100%;
+    }
+    .support-card h1 { font-size: 24px; font-weight: 700; margin: 0 0 8px; color: var(--ink); }
+    .support-card .subtitle { color: var(--ink-soft); margin: 0 0 32px; font-size: 15px; }
+    .support-card label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+    .support-card input, .support-card textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .support-card input:focus, .support-card textarea:focus { border-color: var(--accent); }
+    .support-card textarea { resize: vertical; min-height: 120px; }
+    .field { margin-bottom: 20px; }
+    .field-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .proof-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 18px;
+      padding: 4px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .proof-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .proof-btn:hover { color: var(--ink); }
+    .proof-btn.active {
+      background: var(--panel);
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+    .support-card .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      width: 100%;
+      background: var(--accent);
+      color: white;
+    }
+    .support-card .submit-btn:hover { background: var(--accent-strong); }
+    .support-card .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status { margin-top: 16px; padding: 12px 14px; border-radius: 8px; font-size: 14px; display: none; }
+    .status.error {
+      display: block;
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .status.success {
+      display: block;
+      background: #e6f4ee;
+      color: var(--good);
+      border: 1px solid #bbf7d0;
+    }
+    .faq { max-width: 540px; width: 100%; margin-top: 32px; }
+    .faq h2 { font-size: 18px; font-weight: 700; margin: 0 0 16px; color: var(--ink); }
+    .faq-item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: var(--panel);
+    }
+    .faq-item summary {
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      list-style: none;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item .answer {
+      padding: 0 16px 14px;
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+    }
+    @media (max-width: 600px) {
+      .support-card { padding: 24px 20px; }
+      .support-card input, .support-card textarea { font-size: 16px; }
+    }
+  </style>
+---
+<main class="support-main">
+  <div class="support-card">
+    <h1>Pro Support</h1>
+    <p class="subtitle">Confirm your purchase and we'll get back to you by email.</p>
+
+    <form id="support-form">
+      <div class="proof-toggle" role="group" aria-label="Proof of purchase">
+        <button type="button" class="proof-btn active" data-proof="key">Licence key</button>
+        <button type="button" class="proof-btn" data-proof="tx">Transaction ID</button>
+      </div>
+
+      <div class="field" data-field="key">
+        <label for="key">Licence key</label>
+        <input type="text" id="key" name="key" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false">
+        <div class="field-hint">Right-click WhatCable in the menu bar, then click Licence to find your key.</div>
+      </div>
+
+      <div class="field" data-field="tx" hidden>
+        <label for="tx">Stripe transaction ID or receipt number</label>
+        <input type="text" id="tx" name="tx" placeholder="pi_... or 1234-5678" autocomplete="off" spellcheck="false">
+        <div class="field-hint">From your Stripe receipt email (subject: "Receipt from WhatCable"). Use this if you paid but never received a key.</div>
+      </div>
+
+      <div class="field">
+        <label for="email">Your email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      </div>
+
+      <div class="field">
+        <label for="message">How can we help?</label>
+        <textarea id="message" name="message" placeholder="Describe the issue or question..." required></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">Send message</button>
+      <div id="status" class="status"></div>
+    </form>
+  </div>
+
+  <div class="faq">
+    <h2>Common questions</h2>
+
+    <details class="faq-item">
+      <summary>I lost my licence key (or never received one)</summary>
+      <div class="answer">Check your email for a message from noreply@whatcable.uk with the subject "Your WhatCable Pro licence key". If you can't find it, switch the form above to "Transaction ID" and paste your Stripe receipt number or payment ID. We'll look up your purchase and send the key over.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>My key isn't working</summary>
+      <div class="answer">Make sure you're pasting the full key including the dashes (e.g. XXXX-XXXX-XXXX-XXXX). Right-click WhatCable in the menu bar, click Licence, and paste it there. If it still fails, your Mac might be offline. WhatCable validates the key once on activation and needs an internet connection for that first check.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Can I move my key to a new Mac?</summary>
+      <div class="answer">Your key works on up to 2 Macs at a time. If you've replaced a machine and hit the device limit, get in touch using the form above and we'll reset it for you.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Can I get a refund?</summary>
+      <div class="answer">Yes. If WhatCable Pro isn't working for you, contact us within 14 days of purchase and we'll refund you, no questions asked.</div>
+    </details>
+  </div>
+</main>
+
+{% raw %}
+<script>
+  const form = document.getElementById("support-form");
+  const btn = document.getElementById("submit-btn");
+  const status = document.getElementById("status");
+  const keyField = document.querySelector('[data-field="key"]');
+  const txField = document.querySelector('[data-field="tx"]');
+  const keyInput = document.getElementById("key");
+  const txInput = document.getElementById("tx");
+  const proofBtns = document.querySelectorAll(".proof-btn");
+  let proofType = "key";
+
+  proofBtns.forEach((b) => {
+    b.addEventListener("click", () => {
+      proofBtns.forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+      proofType = b.dataset.proof;
+      if (proofType === "key") {
+        keyField.hidden = false;
+        txField.hidden = true;
+      } else {
+        keyField.hidden = true;
+        txField.hidden = false;
+      }
+      status.className = "status";
+      status.textContent = "";
+    });
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    status.className = "status";
+    status.textContent = "";
+
+    const proofValue = proofType === "key" ? keyInput.value.trim() : txInput.value.trim();
+    if (!proofValue) {
+      status.className = "status error";
+      status.textContent = proofType === "key"
+        ? "Please enter your licence key."
+        : "Please enter your Stripe transaction ID or receipt number.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+
+    const payload = {
+      email: document.getElementById("email").value.trim(),
+      message: document.getElementById("message").value.trim(),
+    };
+    if (proofType === "key") {
+      payload.key = proofValue;
+    } else {
+      payload.stripeTxId = proofValue;
+    }
+
+    try {
+      const res = await fetch("https://whatcable.uk/api/support", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        status.className = "status success";
+        status.textContent = "Message sent. We'll reply by email.";
+        form.reset();
+      } else if (res.status === 403) {
+        status.className = "status error";
+        status.textContent = "That licence key wasn't recognised. Please check and try again, or switch to Transaction ID.";
+      } else {
+        status.className = "status error";
+        status.textContent = data.error || "Something went wrong. Please try again.";
+      }
+    } catch {
+      status.className = "status error";
+      status.textContent = "Could not reach the server. Please try again later.";
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Send message";
+  });
+</script>
+{% endraw %}

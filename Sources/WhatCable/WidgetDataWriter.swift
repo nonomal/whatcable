@@ -29,12 +29,13 @@ final class WidgetDataWriter {
     )
 
     // Own watcher instances, independent of the UI's watchers.
-    private let portWatcher = USBCPortWatcher()
+    private let portWatcher = AppleHPMInterfaceWatcher()
     private let deviceWatcher = USBWatcher()
     private let powerWatcher = PowerSourceWatcher()
-    private let pdWatcher = PDIdentityWatcher()
-    private let tbWatcher = ThunderboltWatcher()
+    private let pdWatcher = USBPDSOPWatcher()
+    private let tbWatcher = IOIOThunderboltSwitchWatcher()
     private let usb3Watcher = USB3TransportWatcher()
+    private let trmWatcher = TRMTransportWatcher()
 
     private var cancellables = Set<AnyCancellable>()
     private var writeTask: Task<Void, Never>?
@@ -61,6 +62,7 @@ final class WidgetDataWriter {
         pdWatcher.start()
         tbWatcher.start()
         usb3Watcher.start()
+        trmWatcher.start()
 
         // Write an initial snapshot once watchers have had a tick to populate.
         DispatchQueue.main.async { [weak self] in
@@ -95,6 +97,11 @@ final class WidgetDataWriter {
             .store(in: &cancellables)
 
         usb3Watcher.$transports
+            .dropFirst()
+            .sink { [weak self] _ in self?.scheduleWrite() }
+            .store(in: &cancellables)
+
+        trmWatcher.$cioCapabilities
             .dropFirst()
             .sink { [weak self] _ in self?.scheduleWrite() }
             .store(in: &cancellables)
@@ -165,6 +172,7 @@ final class WidgetDataWriter {
 
 
     private func buildSnapshot() -> WidgetSnapshot {
+        let batteryFull = SystemPower.batteryFullyCharged()
         let entries: [WidgetSnapshot.PortEntry] = portWatcher.ports.map { port in
             let devices = port.matchingDevices(from: deviceWatcher.devices)
             let sources = powerWatcher.sources(for: port)
@@ -184,7 +192,9 @@ final class WidgetDataWriter {
                 devices: devices,
                 thunderboltSwitches: tbWatcher.switches,
                 usb3Transports: usb3Watcher.transports(for: port),
-                isConnectedOverride: isLive
+                cioCapability: trmWatcher.cioCapabilities.first { $0.portKey == port.portKey },
+                isConnectedOverride: isLive,
+                batteryFullyCharged: batteryFull
             )
 
             let status = WidgetSnapshot.Status(from: summary.status)

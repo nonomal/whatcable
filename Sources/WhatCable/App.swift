@@ -67,12 +67,11 @@ struct WhatCableApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSWindowDelegate {
-    static let refreshSignal = RefreshSignal()
+    static let refreshSignal = RefreshSignal.shared
 
     // Menu bar mode
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
-    private var isPinned = false
 
     // Window mode
     private var window: NSWindow?
@@ -101,6 +100,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
                 self?.applyDisplayMode(menuBar: menuBar)
             }
             .store(in: &cancellables)
+
+        // Pin toggle: the menu item and the in-app button both write
+        // RefreshSignal.keepOpen; this applies it to the live popover.
+        Self.refreshSignal.$keepOpen
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] keepOpen in
+                self?.popover?.behavior = keepOpen ? .applicationDefined : .transient
+            }
+            .store(in: &cancellables)
+
+        // A plugin (header button or status-menu item) sets a Pro-screen
+        // route; bring the surface forward so the user sees it. The route
+        // itself is rendered by ContentView. Nil (Back) needs no action.
+        Self.refreshSignal.$activeProScreen
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] route in
+                guard route != nil else { return }
+                self?.presentMainSurface()
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Bring the single content surface forward (popover in menu-bar
+    /// mode, window in desktop mode) without changing any navigation
+    /// state. Used when navigation is triggered from outside the popover.
+    private func presentMainSurface() {
+        NSApp.activate(ignoringOtherApps: true)
+        if AppSettings.shared.useMenuBarMode {
+            if let button = statusItem?.button, let popover, !popover.isShown {
+                togglePopover(from: button)
+            }
+        } else if let window {
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            setUpWindowMode()
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -127,12 +163,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     private func setUpMenuBarMode() {
         if popover == nil {
             let p = NSPopover()
-            p.behavior = isPinned ? .applicationDefined : .transient
+            p.behavior = Self.refreshSignal.keepOpen ? .applicationDefined : .transient
             p.animates = true
-            p.contentSize = NSSize(width: 760, height: 540)
-            p.contentViewController = NSHostingController(
+            // Size to the SwiftUI content instead of a fixed box, so a
+            // near-empty popover isn't half the screen (issue #159) and a
+            // Pro screen gets the room it needs. ContentView caps its own
+            // max size and scrolls past it.
+            let host = NSHostingController(
                 rootView: ContentView().environmentObject(Self.refreshSignal)
             )
+            host.sizingOptions = [.preferredContentSize]
+            p.contentViewController = host
             p.delegate = self
             popover = p
         }
@@ -215,7 +256,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         let menu = NSMenu()
         menu.addItem(.init(title: String(localized: "Refresh", bundle: _appLocalizedBundle), action: #selector(menuRefresh), keyEquivalent: "r"))
         let pinItem = NSMenuItem(title: String(localized: "Keep window open", bundle: _appLocalizedBundle), action: #selector(menuTogglePin), keyEquivalent: "p")
-        pinItem.state = isPinned ? .on : .off
+        pinItem.state = Self.refreshSignal.keepOpen ? .on : .off
         menu.addItem(pinItem)
         menu.addItem(.separator())
         menu.addItem(.init(title: String(localized: "Settings…", bundle: _appLocalizedBundle), action: #selector(menuSettings), keyEquivalent: ","))
@@ -223,6 +264,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
             menu.addItem(builder())
         }
         menu.addItem(.init(title: String(localized: "Check for Updates…", bundle: _appLocalizedBundle), action: #selector(menuCheckUpdates), keyEquivalent: ""))
+        let testKitItem = NSMenuItem(
+            title: String(localized: "Contribute Diagnostic Data…", bundle: _appLocalizedBundle),
+            action: #selector(menuRunTestKit),
+            keyEquivalent: ""
+        )
+        if TestKitRunner.shared.isRunning {
+            testKitItem.isEnabled = false
+        }
+        menu.addItem(testKitItem)
         menu.addItem(.separator())
         menu.addItem(.init(title: String(localized: "About \(AppInfo.name)", bundle: _appLocalizedBundle), action: #selector(showAboutPanel), keyEquivalent: ""))
         menu.addItem(.init(title: String(localized: "WhatCable on GitHub", bundle: _appLocalizedBundle), action: #selector(menuHelp), keyEquivalent: ""))
@@ -236,8 +286,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     }
 
     @objc private func menuTogglePin() {
-        isPinned.toggle()
-        popover?.behavior = isPinned ? .applicationDefined : .transient
+        // The $keepOpen sink applies this to the live popover.
+        Self.refreshSignal.keepOpen.toggle()
     }
 
     @objc func menuRefresh() {
@@ -288,6 +338,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
     }
 
 
+    @objc private func menuRunTestKit() {
+        showSettings()
+        Self.refreshSignal.showTestKitConsent = true
+    }
+
     @objc private func menuCheckUpdates() {
         UpdateChecker.shared.check(silent: false)
     }
@@ -306,6 +361,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate, NSW
         Task { @MainActor in
             Self.refreshSignal.optionHeld = false
             Self.refreshSignal.showSettings = false
+            Self.refreshSignal.showTestKitConsent = false
         }
     }
 }

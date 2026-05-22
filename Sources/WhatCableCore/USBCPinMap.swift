@@ -125,7 +125,7 @@ extension USBCPinMap {
     ///
     /// The pin config dict uses string keys ("tx1", "rx1", etc.) with
     /// stringified integer values ("0", "6", etc.). These come from
-    /// `USBCPort.pinConfiguration`, which stringifies the raw NSNumber
+    /// `AppleHPMInterface.pinConfiguration`, which stringifies the raw NSNumber
     /// values from IOKit.
     public static func from(
         pinConfiguration: [String: String],

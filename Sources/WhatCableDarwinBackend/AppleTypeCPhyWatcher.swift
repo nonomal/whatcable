@@ -1,0 +1,178 @@
+import Foundation
+import IOKit
+import WhatCableCore
+
+/// Watches `AppleT8132TypeCPhy` services for per-lane physical layer state.
+/// One instance per physical USB-C port. Provides the only way to see which
+/// transport protocol (CIO, DisplayPort, or idle) is assigned to each lane.
+///
+/// The IOKit class name varies by chip generation:
+/// - M3/M4: AppleT8132TypeCPhy
+/// - Future chips may use different suffixes.
+///
+/// Updates instantly on mode change (notification-driven).
+@MainActor
+public final class AppleTypeCPhyWatcher: ObservableObject {
+    @Published public private(set) var phys: [AppleTypeCPhy] = []
+
+    nonisolated static let candidateClasses = [
+        "AppleT8132TypeCPhy",
+        "AppleT8122TypeCPhy",
+        "AppleT8112TypeCPhy",
+        "AppleT6042TypeCPhy",
+        "AppleT6022TypeCPhy",
+        "AppleT6002TypeCPhy",
+        "AppleT6000TypeCPhy",
+    ]
+
+    private var notifyPort: IONotificationPortRef?
+    private var iterators: [io_iterator_t] = []
+    private var interestNotifications: [UInt64: io_object_t] = [:]
+
+    public init() {}
+
+    public func start() {
+        guard notifyPort == nil else { return }
+        let port = IONotificationPortCreate(kIOMainPortDefault)
+        IONotificationPortSetDispatchQueue(port, DispatchQueue.main)
+        notifyPort = port
+
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let cb: IOServiceMatchingCallback = { refcon, iterator in
+            guard let refcon else { return }
+            let watcher = Unmanaged<AppleTypeCPhyWatcher>.fromOpaque(refcon).takeUnretainedValue()
+            Task { @MainActor in
+                while case let s = IOIteratorNext(iterator), s != 0 {
+                    IOObjectRelease(s)
+                }
+                watcher.refresh()
+            }
+        }
+
+        for cls in Self.candidateClasses {
+            var iter: io_iterator_t = 0
+            if IOServiceAddMatchingNotification(port, kIOMatchedNotification,
+                                                 IOServiceMatching(cls), cb, selfPtr, &iter) == KERN_SUCCESS {
+                iterators.append(iter)
+                while case let s = IOIteratorNext(iter), s != 0 {
+                    IOObjectRelease(s)
+                }
+            }
+        }
+        refresh()
+    }
+
+    public func stop() {
+        for iter in iterators { IOObjectRelease(iter) }
+        iterators.removeAll()
+        for (_, n) in interestNotifications { IOObjectRelease(n) }
+        interestNotifications.removeAll()
+        if let port = notifyPort {
+            IONotificationPortDestroy(port)
+            notifyPort = nil
+        }
+        phys.removeAll()
+    }
+
+    public func refresh() {
+        var rebuilt: [AppleTypeCPhy] = []
+        for cls in Self.candidateClasses {
+            var iter: io_iterator_t = 0
+            guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching(cls), &iter) == KERN_SUCCESS else {
+                continue
+            }
+            defer { IOObjectRelease(iter) }
+
+            while case let service = IOIteratorNext(iter), service != 0 {
+                defer { IOObjectRelease(service) }
+                if let phy = makePhy(from: service) {
+                    if !rebuilt.contains(where: { $0.id == phy.id }) {
+                        rebuilt.append(phy)
+                    }
+                    var entryID: UInt64 = 0
+                    IORegistryEntryGetRegistryEntryID(service, &entryID)
+                    registerInterest(for: service, entryID: entryID)
+                }
+            }
+        }
+        rebuilt.sort { $0.id < $1.id }
+        if rebuilt != phys { phys = rebuilt }
+    }
+
+    private func makePhy(from service: io_service_t) -> AppleTypeCPhy? {
+        var props: Unmanaged<CFMutableDictionary>?
+        guard IORegistryEntryCreateCFProperties(service, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS,
+              let dict = props?.takeRetainedValue() as? [String: Any] else {
+            return nil
+        }
+
+        let phyID = (dict["AppleTypeCPhyID"] as? NSNumber)?.intValue ?? -1
+        guard phyID >= 0 else { return nil }
+
+        var lanes: [PhyLane] = []
+        if let laneDict = dict["AppleTypeCPhyLane"] as? [String: Any] {
+            for i in 0..<4 {
+                let key = "Lane \(i)"
+                guard let laneProps = laneDict[key] as? [String: Any] else { continue }
+                let lane = PhyLane(
+                    index: i,
+                    transport: (laneProps["Transport"] as? String) ?? "",
+                    powerLevel: (laneProps["Power Level"] as? String) ?? "",
+                    client: (laneProps["Client"] as? String) ?? ""
+                )
+                lanes.append(lane)
+            }
+        }
+
+        let usb2: PhyUSB2?
+        if let usb2Dict = dict["AppleTypeCPhyUSB2"] as? [String: Any] {
+            usb2 = PhyUSB2(
+                transport: (usb2Dict["Transport"] as? String) ?? "",
+                client: (usb2Dict["Client"] as? String) ?? ""
+            )
+        } else {
+            usb2 = nil
+        }
+
+        let dpPclk: PhyDisplayPortPclk?
+        if let pclkDict = dict["AppleTypeCPhyDisplayPortPclk"] as? [String: Any] {
+            dpPclk = PhyDisplayPortPclk(
+                linkRate: (pclkDict["Link Rate"] as? String) ?? ""
+            )
+        } else {
+            dpPclk = nil
+        }
+
+        let dpTunnel = dict["AppleTypeCPhyDisplayPortTunnel"] as? String
+
+        return AppleTypeCPhy(
+            id: phyID,
+            lanes: lanes,
+            usb2: usb2,
+            displayPortPclk: dpPclk,
+            displayPortTunnel: dpTunnel
+        )
+    }
+
+    private func registerInterest(for service: io_service_t, entryID: UInt64) {
+        guard let notifyPort, interestNotifications[entryID] == nil else { return }
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let cb: IOServiceInterestCallback = { refcon, _, _, _ in
+            guard let refcon else { return }
+            let watcher = Unmanaged<AppleTypeCPhyWatcher>.fromOpaque(refcon).takeUnretainedValue()
+            Task { @MainActor in watcher.refresh() }
+        }
+        var notification: io_object_t = 0
+        let result = IOServiceAddInterestNotification(
+            notifyPort,
+            service,
+            kIOGeneralInterest,
+            cb,
+            selfPtr,
+            &notification
+        )
+        if result == KERN_SUCCESS {
+            interestNotifications[entryID] = notification
+        }
+    }
+}

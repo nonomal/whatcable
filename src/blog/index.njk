@@ -1,0 +1,81 @@
+---
+layout: base.njk
+permalink: /blog.html
+title: "Blog"
+documentTitle: "WhatCable Blog: USB-C, Thunderbolt & Cable Diagnostics"
+description: "Notes, deep dives, and investigations on USB-C, Thunderbolt, and cable diagnostics from the WhatCable team."
+feedUrl: /blog/feed.xml
+feedTitle: WhatCable Blog
+extraHead: |
+  <style>
+    .blog-list { list-style: none; padding: 0; margin: 0; }
+    .blog-list li { margin: 0 0 28px; padding: 0; }
+    .blog-list .post-title { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+    .blog-list .post-title a { color: var(--ink); text-decoration: none; }
+    .blog-list .post-title a:hover { color: var(--accent); }
+    .blog-list .post-meta { color: var(--muted); font-size: 13.5px; margin: 0 0 8px; }
+    .blog-list .post-meta a { color: var(--muted); }
+    .blog-list .post-meta a:hover { color: var(--accent); }
+    .blog-list .post-summary { color: var(--ink-soft); margin: 0; }
+    .blog-empty { color: var(--muted); padding: 24px 0; }
+  </style>
+---
+<main>
+  <div class="wrap">
+    <h1>Blog</h1>
+    <p class="subtitle">
+      Notes from the deep weeds of USB-C, Thunderbolt, and cable diagnostics.
+      <a href="/blog/feed.xml">Subscribe via RSS</a>.
+    </p>
+
+    {% if collections.posts and collections.posts.length %}
+      <ul class="blog-list">
+        {% for post in collections.posts %}
+          <li>
+            <h2 class="post-title">
+              <a href="{{ post.url | cleanUrl }}">{{ post.data.title }}</a>
+            </h2>
+            <p class="post-meta">
+              <time datetime="{{ post.date | isoDate }}">{{ post.date | readableDate }}</time>
+              {% if post.data.category %} &nbsp;·&nbsp; {{ post.data.category }}{% endif %}
+            </p>
+            {% if post.data.summary %}
+              <p class="post-summary">{{ post.data.summary }}</p>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="blog-empty">No posts yet. Check back soon.</p>
+    {% endif %}
+  </div>
+</main>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "name": "WhatCable Blog",
+  "description": {{ description | dump | safe }},
+  "url": "{{ site.url }}/blog",
+  "publisher": {
+    "@type": "Organization",
+    "name": {{ site.name | dump | safe }},
+    "url": {{ site.url | dump | safe }},
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ site.url }}/icon.png"
+    }
+  },
+  "blogPost": [
+{%- for post in collections.posts %}
+    {
+      "@type": "BlogPosting",
+      "headline": {{ post.data.title | dump | safe }},
+      "description": {{ (post.data.summary or "") | dump | safe }},
+      "url": "{{ site.url }}{{ post.url | cleanUrl }}",
+      "datePublished": {{ post.date | isoDate | dump | safe }}
+    }{% if not loop.last %},{% endif %}
+{%- endfor %}
+  ]
+}
+</script>

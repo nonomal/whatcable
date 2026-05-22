@@ -2,15 +2,18 @@ import Foundation
 
 public enum TextFormatter {
     public static func render(
-        ports: [USBCPort],
+        ports: [AppleHPMInterface],
         sources: [PowerSource],
-        identities: [PDIdentity],
+        identities: [USBPDSOP],
         showRaw: Bool,
         adapter: AdapterInfo? = nil,
-        thunderboltSwitches: [ThunderboltSwitch] = [],
+        thunderboltSwitches: [IOThunderboltSwitch] = [],
         isDesktopMac: Bool = false,
+        batteryFullyCharged: Bool? = nil,
         federatedIdentities: [FederatedIdentity] = [],
-        usb3Transports: [USB3Transport] = []
+        usb3Transports: [USB3Transport] = [],
+        cioCapabilities: [CIOCableCapability] = [],
+        usbDevices: [USBDevice] = []
     ) -> String {
         if ports.isEmpty {
             return String(localized: "No USB-C / MagSafe ports were found on this Mac.", bundle: _coreLocalizedBundle) + "\n"
@@ -20,39 +23,59 @@ public enum TextFormatter {
         if isDesktopMac {
             out += ANSI.wrap(ANSI.dim, "Desktop Mac: charger identity (FedDetails) is not available (no battery controller).") + "\n\n"
         }
+        let activePortCount = ports.filter { $0.connectionActive == true }.count
         for (i, port) in ports.enumerated() {
             if i > 0 { out += "\n" }
+            let portSources = filterSources(port, all: sources)
+            let wattageSource = ChargerWattageSource.resolve(
+                portSources: portSources,
+                activePortCount: activePortCount,
+                adapter: adapter
+            )
             out += renderPort(
                 port,
-                sources: filterSources(port, all: sources),
+                sources: portSources,
                 identities: filterIdentities(port, all: identities),
                 showRaw: showRaw,
                 adapter: adapter,
                 thunderboltSwitches: thunderboltSwitches,
                 federatedIdentities: federatedIdentities,
-                usb3Transports: usb3Transports.filter { $0.portKey == port.portKey }
+                usb3Transports: usb3Transports.filter { $0.portKey == port.portKey },
+                cioCapability: cioCapabilities.first { $0.portKey == port.portKey },
+                chargerWattageSource: wattageSource,
+                batteryFullyCharged: batteryFullyCharged,
+                usbDevices: port.matchingDevices(from: usbDevices)
             )
         }
         return out
     }
 
     private static func renderPort(
-        _ port: USBCPort,
+        _ port: AppleHPMInterface,
         sources: [PowerSource],
-        identities: [PDIdentity],
+        identities: [USBPDSOP],
         showRaw: Bool,
         adapter: AdapterInfo?,
-        thunderboltSwitches: [ThunderboltSwitch],
+        thunderboltSwitches: [IOThunderboltSwitch],
         federatedIdentities: [FederatedIdentity] = [],
-        usb3Transports: [USB3Transport] = []
+        usb3Transports: [USB3Transport] = [],
+        cioCapability: CIOCableCapability? = nil,
+        chargerWattageSource: ChargerWattageSource = .unknown,
+        batteryFullyCharged: Bool? = nil,
+        usbDevices: [USBDevice] = []
     ) -> String {
         let summary = PortSummary(
             port: port,
             sources: sources,
             identities: identities,
+            devices: usbDevices,
             thunderboltSwitches: thunderboltSwitches,
             federatedIdentities: federatedIdentities,
-            usb3Transports: usb3Transports
+            usb3Transports: usb3Transports,
+            cioCapability: cioCapability,
+            chargerWattageSource: chargerWattageSource,
+            batteryFullyCharged: batteryFullyCharged,
+            adapter: adapter
         )
         let label = port.portDescription ?? port.serviceName
         let typeSuffix = port.portTypeDescription.map { " (\($0))" } ?? ""
@@ -62,7 +85,9 @@ public enum TextFormatter {
 
         let headlineColor = color(for: summary.status)
         out += ANSI.wrap(ANSI.bold + headlineColor, summary.headline) + "\n"
-        out += ANSI.wrap(ANSI.dim, summary.subtitle) + "\n"
+        if !summary.subtitle.isEmpty {
+            out += ANSI.wrap(ANSI.dim, summary.subtitle) + "\n"
+        }
 
         if !summary.bullets.isEmpty {
             out += "\n"
@@ -71,10 +96,23 @@ public enum TextFormatter {
             }
         }
 
-        if let diag = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter) {
+        if let diag = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter, wattageSource: chargerWattageSource, batteryFullyCharged: batteryFullyCharged) {
             let diagColor = diag.isWarning ? ANSI.yellow : ANSI.green
             out += "\n" + ANSI.wrap(ANSI.bold, String(localized: "Charging: ", bundle: _coreLocalizedBundle)) + ANSI.wrap(diagColor, diag.summary) + "\n"
             out += "  " + ANSI.wrap(ANSI.dim, diag.detail) + "\n"
+        }
+
+        if let dataDiag = DataLinkDiagnostic(
+            port: port,
+            identities: identities,
+            devices: usbDevices,
+            usb3Transports: usb3Transports,
+            cio: cioCapability,
+            thunderboltSwitches: thunderboltSwitches
+        ) {
+            let dataColor = dataDiag.isWarning ? ANSI.yellow : ANSI.green
+            out += "\n" + ANSI.wrap(ANSI.bold, "Data: ") + ANSI.wrap(dataColor, dataDiag.summary) + "\n"
+            out += "  " + ANSI.wrap(ANSI.dim, dataDiag.detail) + "\n"
         }
 
         // Cable trust signals: hedged flags raised against the e-marker.
@@ -138,6 +176,7 @@ public enum TextFormatter {
         switch status {
         case .empty: return ANSI.gray
         case .charging: return ANSI.yellow
+        case .batteryFull: return ANSI.green
         case .dataDevice: return ANSI.blue
         case .thunderboltCable: return ANSI.magenta
         case .displayCable: return ANSI.cyan
@@ -145,12 +184,12 @@ public enum TextFormatter {
         }
     }
 
-    private static func filterSources(_ port: USBCPort, all: [PowerSource]) -> [PowerSource] {
+    private static func filterSources(_ port: AppleHPMInterface, all: [PowerSource]) -> [PowerSource] {
         guard let key = port.portKey else { return [] }
         return all.filter { $0.portKey == key }
     }
 
-    private static func filterIdentities(_ port: USBCPort, all: [PDIdentity]) -> [PDIdentity] {
+    private static func filterIdentities(_ port: AppleHPMInterface, all: [USBPDSOP]) -> [USBPDSOP] {
         guard let key = port.portKey else { return [] }
         return all.filter { $0.portKey == key }
     }

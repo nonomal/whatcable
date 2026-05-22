@@ -1,0 +1,357 @@
+// Deep dump of every property on every service in the HPM/IOPort tree,
+// with full recursion into nested dictionaries and arrays.
+// Previous probes showed <dict> and <array> but didn't unpack them.
+//
+// Focus areas:
+// 1. AppleHPMInterfaceType10 "Metadata" dict (unexplored)
+// 2. "Pin Configuration" dict
+// 3. "CF VID Status Reg" raw bytes decoded
+// 4. IOPortTransportStateUSB3 full dump (SuperSpeedSignaling, etc)
+// 5. IOPortTransportStateDisplayPort full dump (MaxLaneCount, LinkRate)
+// 6. IOPortFeaturePowerSource "PowerSourceOptions" array
+// 7. IOPortFeaturePowerSource "WinningPowerSourceOption" dict
+// 8. Every "Metadata" dict on every service
+// 9. "TransportsSupported/Active/Provisioned" arrays
+// 10. "FeaturesEnabled/Supported" arrays
+//
+// Compile: clang -framework IOKit -framework CoreFoundation -o deep_dump 17_deep_property_dump.c
+// Run: sudo ./deep_dump
+// IMPORTANT: Have a USB-C cable plugged in!
+
+#include <IOKit/IOKitLib.h>
+#include <CoreFoundation/CoreFoundation.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static void printIndent(int depth) {
+    for (int i = 0; i < depth; i++) printf("  ");
+}
+
+static void dumpCFType(CFTypeRef value, int depth);
+
+static void dumpDict(CFDictionaryRef dict, int depth) {
+    CFIndex count = CFDictionaryGetCount(dict);
+    const void **keys = malloc(sizeof(void*) * count);
+    const void **vals = malloc(sizeof(void*) * count);
+    CFDictionaryGetKeysAndValues(dict, keys, vals);
+
+    for (CFIndex i = 0; i < count; i++) {
+        char keyBuf[256];
+        if (CFGetTypeID(keys[i]) == CFStringGetTypeID()) {
+            CFStringGetCString(keys[i], keyBuf, sizeof(keyBuf), kCFStringEncodingUTF8);
+        } else {
+            snprintf(keyBuf, sizeof(keyBuf), "<non-string key>");
+        }
+        printIndent(depth);
+        printf("%s: ", keyBuf);
+        dumpCFType(vals[i], depth);
+    }
+
+    free(keys);
+    free(vals);
+}
+
+static void dumpArray(CFArrayRef arr, int depth) {
+    CFIndex count = CFArrayGetCount(arr);
+    for (CFIndex i = 0; i < count; i++) {
+        printIndent(depth);
+        printf("[%ld] ", i);
+        dumpCFType(CFArrayGetValueAtIndex(arr, i), depth);
+    }
+}
+
+static void dumpCFType(CFTypeRef value, int depth) {
+    if (!value) { printf("(null)\n"); return; }
+
+    CFTypeID tid = CFGetTypeID(value);
+
+    if (tid == CFStringGetTypeID()) {
+        char buf[1024];
+        CFStringGetCString(value, buf, sizeof(buf), kCFStringEncodingUTF8);
+        printf("\"%s\"\n", buf);
+    } else if (tid == CFNumberGetTypeID()) {
+        int64_t val = 0;
+        CFNumberGetValue(value, kCFNumberSInt64Type, &val);
+        if (val >= -256 && val <= 65535)
+            printf("%lld (0x%llx)\n", val, val);
+        else
+            printf("%lld (0x%llx)\n", val, val);
+    } else if (tid == CFBooleanGetTypeID()) {
+        printf("%s\n", CFBooleanGetValue(value) ? "true" : "false");
+    } else if (tid == CFDataGetTypeID()) {
+        CFDataRef data = (CFDataRef)value;
+        CFIndex len = CFDataGetLength(data);
+        const uint8_t *bytes = CFDataGetBytePtr(data);
+        printf("<data %ld bytes> [", len);
+        for (CFIndex j = 0; j < len && j < 128; j++) {
+            printf(" %02x", bytes[j]);
+        }
+        if (len > 128) printf(" ...");
+        printf(" ]\n");
+
+        // If small data, also try interpreting as uint32 array (VDOs are 32-bit)
+        if (len >= 4 && len <= 32 && len % 4 == 0) {
+            printIndent(depth + 1);
+            printf("(as uint32[]: ");
+            const uint32_t *words = (const uint32_t *)bytes;
+            for (CFIndex j = 0; j < len / 4; j++) {
+                printf("0x%08x ", words[j]);
+            }
+            printf(")\n");
+        }
+    } else if (tid == CFDictionaryGetTypeID()) {
+        printf("{\n");
+        dumpDict((CFDictionaryRef)value, depth + 1);
+        printIndent(depth);
+        printf("}\n");
+    } else if (tid == CFArrayGetTypeID()) {
+        printf("[\n");
+        dumpArray((CFArrayRef)value, depth + 1);
+        printIndent(depth);
+        printf("]\n");
+    } else {
+        printf("<CFType %lu>\n", tid);
+    }
+}
+
+static void dumpServiceFull(io_service_t service, int depth) {
+    io_name_t className;
+    IOObjectGetClass(service, className);
+
+    printIndent(depth);
+    printf("=== %s ===\n", className);
+
+    CFMutableDictionaryRef props = NULL;
+    kern_return_t kr = IORegistryEntryCreateCFProperties(
+        service, &props, kCFAllocatorDefault, 0);
+    if (kr == KERN_SUCCESS && props) {
+        dumpDict(props, depth + 1);
+        CFRelease(props);
+    }
+
+    // Recurse into children
+    io_iterator_t childIter;
+    kr = IORegistryEntryGetChildIterator(service, kIOServicePlane, &childIter);
+    if (kr == KERN_SUCCESS) {
+        io_service_t child;
+        while ((child = IOIteratorNext(childIter))) {
+            dumpServiceFull(child, depth + 1);
+            IOObjectRelease(child);
+        }
+        IOObjectRelease(childIter);
+    }
+}
+
+int main(void) {
+    printf("Running as uid=%d\n\n", getuid());
+
+    // Dump the full tree under each AppleHPMInterfaceType10/11
+    printf("============================================================\n");
+    printf("  FULL PROPERTY DUMP: HPM Interface -> all children\n");
+    printf("============================================================\n\n");
+
+    const char *rootClasses[] = {
+        "AppleHPMInterfaceType10",
+        "AppleHPMInterfaceType11",
+        NULL
+    };
+
+    for (int c = 0; rootClasses[c]; c++) {
+        io_iterator_t iter;
+        kern_return_t kr = IOServiceGetMatchingServices(
+            kIOMainPortDefault,
+            IOServiceMatching(rootClasses[c]),
+            &iter);
+        if (kr != KERN_SUCCESS) continue;
+
+        io_service_t svc;
+        int idx = 0;
+        while ((svc = IOIteratorNext(iter))) {
+            printf("\n--- %s[%d] ---\n", rootClasses[c], idx);
+            dumpServiceFull(svc, 0);
+            IOObjectRelease(svc);
+            idx++;
+        }
+        IOObjectRelease(iter);
+    }
+
+    // Also dump DeviceHAL for the CF VID Status Reg
+    printf("\n============================================================\n");
+    printf("  FULL PROPERTY DUMP: AppleHPMDeviceHALType3\n");
+    printf("============================================================\n\n");
+    {
+        io_iterator_t iter;
+        kern_return_t kr = IOServiceGetMatchingServices(
+            kIOMainPortDefault,
+            IOServiceMatching("AppleHPMDeviceHALType3"),
+            &iter);
+        if (kr == KERN_SUCCESS) {
+            io_service_t svc;
+            int idx = 0;
+            while ((svc = IOIteratorNext(iter))) {
+                printf("--- DeviceHAL[%d] ---\n", idx);
+
+                CFMutableDictionaryRef props = NULL;
+                kr = IORegistryEntryCreateCFProperties(
+                    svc, &props, kCFAllocatorDefault, 0);
+                if (kr == KERN_SUCCESS && props) {
+                    dumpDict(props, 1);
+                    CFRelease(props);
+                }
+
+                IOObjectRelease(svc);
+                idx++;
+            }
+            IOObjectRelease(iter);
+        }
+    }
+
+    // Dump USB device tree for connected devices
+    printf("\n============================================================\n");
+    printf("  IOUSBHostDevice properties (connected USB devices)\n");
+    printf("============================================================\n\n");
+    {
+        io_iterator_t iter;
+        kern_return_t kr = IOServiceGetMatchingServices(
+            kIOMainPortDefault,
+            IOServiceMatching("IOUSBHostDevice"),
+            &iter);
+        if (kr == KERN_SUCCESS) {
+            io_service_t svc;
+            while ((svc = IOIteratorNext(iter))) {
+                io_name_t className;
+                IOObjectGetClass(svc, className);
+
+                CFNumberRef vid = (CFNumberRef)IORegistryEntryCreateCFProperty(
+                    svc, CFSTR("idVendor"), kCFAllocatorDefault, 0);
+                CFNumberRef pid = (CFNumberRef)IORegistryEntryCreateCFProperty(
+                    svc, CFSTR("idProduct"), kCFAllocatorDefault, 0);
+                CFStringRef name = (CFStringRef)IORegistryEntryCreateCFProperty(
+                    svc, CFSTR("USB Product Name"), kCFAllocatorDefault, 0);
+                CFNumberRef speed = (CFNumberRef)IORegistryEntryCreateCFProperty(
+                    svc, CFSTR("Device Speed"), kCFAllocatorDefault, 0);
+                CFNumberRef bcdUSB = (CFNumberRef)IORegistryEntryCreateCFProperty(
+                    svc, CFSTR("bcdUSB"), kCFAllocatorDefault, 0);
+
+                int v = 0, p = 0, s = 0, bcd = 0;
+                if (vid) { CFNumberGetValue(vid, kCFNumberIntType, &v); CFRelease(vid); }
+                if (pid) { CFNumberGetValue(pid, kCFNumberIntType, &p); CFRelease(pid); }
+                if (speed) { CFNumberGetValue(speed, kCFNumberIntType, &s); CFRelease(speed); }
+                if (bcdUSB) { CFNumberGetValue(bcdUSB, kCFNumberIntType, &bcd); CFRelease(bcdUSB); }
+
+                char nameBuf[256] = "?";
+                if (name) { CFStringGetCString(name, nameBuf, sizeof(nameBuf), kCFStringEncodingUTF8); CFRelease(name); }
+
+                printf("  %s VID=0x%04x PID=0x%04x speed=%d bcdUSB=0x%04x\n",
+                    nameBuf, v, p, s, bcd);
+
+                IOObjectRelease(svc);
+            }
+            IOObjectRelease(iter);
+        }
+    }
+
+    // Look for any IOPortTransportState* services and dump them
+    printf("\n============================================================\n");
+    printf("  All IOPortTransportState* services\n");
+    printf("============================================================\n\n");
+    {
+        const char *transportClasses[] = {
+            "IOPortTransportStateCC",
+            "IOPortTransportStateUSB2",
+            "IOPortTransportStateUSB3",
+            "IOPortTransportStateDisplayPort",
+            "IOPortTransportStateThunderbolt",
+            "IOPortTransportStatePCIe",
+            NULL
+        };
+
+        for (int i = 0; transportClasses[i]; i++) {
+            io_iterator_t iter;
+            kern_return_t kr = IOServiceGetMatchingServices(
+                kIOMainPortDefault,
+                IOServiceMatching(transportClasses[i]),
+                &iter);
+            if (kr != KERN_SUCCESS) continue;
+
+            io_service_t svc;
+            int idx = 0;
+            while ((svc = IOIteratorNext(iter))) {
+                printf("--- %s[%d] ---\n", transportClasses[i], idx);
+                CFMutableDictionaryRef props = NULL;
+                kr = IORegistryEntryCreateCFProperties(
+                    svc, &props, kCFAllocatorDefault, 0);
+                if (kr == KERN_SUCCESS && props) {
+                    dumpDict(props, 1);
+                    CFRelease(props);
+                }
+
+                // Also dump children (SOP/SOPp/SOPpp components)
+                io_iterator_t childIter;
+                kr = IORegistryEntryGetChildIterator(svc, kIOServicePlane, &childIter);
+                if (kr == KERN_SUCCESS) {
+                    io_service_t child;
+                    while ((child = IOIteratorNext(childIter))) {
+                        io_name_t childClass;
+                        IOObjectGetClass(child, childClass);
+                        printf("  child: %s\n", childClass);
+                        CFMutableDictionaryRef childProps = NULL;
+                        kr = IORegistryEntryCreateCFProperties(
+                            child, &childProps, kCFAllocatorDefault, 0);
+                        if (kr == KERN_SUCCESS && childProps) {
+                            dumpDict(childProps, 2);
+                            CFRelease(childProps);
+                        }
+                        IOObjectRelease(child);
+                    }
+                    IOObjectRelease(childIter);
+                }
+
+                IOObjectRelease(svc);
+                idx++;
+            }
+            IOObjectRelease(iter);
+        }
+    }
+
+    // Look for IOPortFeature* services
+    printf("\n============================================================\n");
+    printf("  All IOPortFeature* services\n");
+    printf("============================================================\n\n");
+    {
+        const char *featureClasses[] = {
+            "IOPortFeaturePowerIn",
+            "IOPortFeaturePowerSource",
+            "IOPortFeatureLDCM",
+            NULL
+        };
+
+        for (int i = 0; featureClasses[i]; i++) {
+            io_iterator_t iter;
+            kern_return_t kr = IOServiceGetMatchingServices(
+                kIOMainPortDefault,
+                IOServiceMatching(featureClasses[i]),
+                &iter);
+            if (kr != KERN_SUCCESS) continue;
+
+            io_service_t svc;
+            int idx = 0;
+            while ((svc = IOIteratorNext(iter))) {
+                printf("--- %s[%d] ---\n", featureClasses[i], idx);
+                CFMutableDictionaryRef props = NULL;
+                kr = IORegistryEntryCreateCFProperties(
+                    svc, &props, kCFAllocatorDefault, 0);
+                if (kr == KERN_SUCCESS && props) {
+                    dumpDict(props, 1);
+                    CFRelease(props);
+                }
+                IOObjectRelease(svc);
+                idx++;
+            }
+            IOObjectRelease(iter);
+        }
+    }
+
+    return 0;
+}

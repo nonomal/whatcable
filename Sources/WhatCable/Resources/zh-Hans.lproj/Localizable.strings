@@ -74,3 +74,26 @@
 "You're on %@" = "当前版本 %@";
 "active" = "当前";
 "no active link" = "无活跃链路";
+
+
+/* Test Kit / Contribute Diagnostic Data consent + notifications (previously missing keys) */
+"COMMUNITY" = "社区";
+"Contribute Diagnostic Data" = "贡献诊断数据";
+"Contribute Diagnostic Data…" = "贡献诊断数据…";
+"Privacy" = "隐私";
+"Pro" = "Pro";
+"Proceed" = "继续";
+"Raw IOKit registry properties for each USB-C port, your macOS version, and chip type. This is the same data visible in System Information." = "每个 USB-C 端口的原始 IOKit 注册表属性、你的 macOS 版本和芯片类型。这与 System Information 中可见的数据相同。";
+"What happens" = "会发生什么";
+"What is collected" = "收集哪些内容";
+"WhatCable runs 13 IOKit probes that read raw USB-C and Thunderbolt data from your Mac's port controller registers. The results are sent to a secure server to help improve cable and port detection." = "WhatCable 会运行 13 个 IOKit 探测，从你 Mac 的端口控制器寄存器读取原始 USB-C 和 Thunderbolt 数据。结果会发送到安全服务器，以帮助改进线缆和端口检测。";
+"Your machine's hardware UUID is hashed with SHA-256 before sending. No names, accounts, serial numbers, or personal data are collected or stored." = "你设备的硬件 UUID 在发送前会用 SHA-256 哈希处理。不会收集或存储任何姓名、账户、序列号或个人数据。";
+
+/* Negotiation diagnostics + Pro UX (PR #55). English; non-English to be refined by the community translation flow. */
+"Back" = "Back";
+"Unpin (popover closes when you click away)" = "Unpin (popover closes when you click away)";
+"Open in a separate window" = "Open in a separate window";
+"Power Monitor" = "Power Monitor";
+"Negotiation Diagnostics" = "Negotiation Diagnostics";
+"Cable Diagnostics" = "Cable Diagnostics";
+"%@ Port %lld Diagnostics" = "%@ Port %lld Diagnostics";

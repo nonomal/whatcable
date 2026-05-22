@@ -1,0 +1,43 @@
+---
+pagination:
+  data: collections
+  size: 1
+  alias: tag
+  filter:
+    - all
+    - nav
+    - post
+    - posts
+layout: base.njk
+permalink: /blog/tag/{{ tag | slug }}.html
+eleventyComputed:
+  title: "Posts tagged #{{ tag }}"
+  documentTitle: "Posts tagged #{{ tag }} | WhatCable Blog"
+  description: "All WhatCable blog posts tagged #{{ tag }}."
+---
+<main>
+  <div class="wrap">
+    <p class="subtitle">
+      <a href="/blog">← Back to blog</a>
+    </p>
+    <h1>Posts tagged <span style="color: var(--accent);">#{{ tag }}</span></h1>
+    <p class="subtitle">{{ collections[tag].length }} post{% if collections[tag].length != 1 %}s{% endif %}.</p>
+
+    <ul style="list-style: none; padding: 0; margin: 0;">
+      {% for post in collections[tag] | reverse %}
+        <li style="margin: 0 0 28px;">
+          <h2 style="font-size: 22px; font-weight: 700; margin: 0 0 4px;">
+            <a href="{{ post.url | cleanUrl }}" style="color: var(--ink); text-decoration: none;">{{ post.data.title }}</a>
+          </h2>
+          <p class="subtitle" style="margin: 0 0 8px;">
+            <time datetime="{{ post.date | isoDate }}">{{ post.date | readableDate }}</time>
+            {% if post.data.category %} &nbsp;·&nbsp; {{ post.data.category }}{% endif %}
+          </p>
+          {% if post.data.summary %}
+            <p style="margin: 0;">{{ post.data.summary }}</p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</main>

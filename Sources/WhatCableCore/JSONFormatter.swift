@@ -2,26 +2,35 @@ import Foundation
 
 public enum JSONFormatter {
     public static func render(
-        ports: [USBCPort],
+        ports: [AppleHPMInterface],
         sources: [PowerSource],
-        identities: [PDIdentity],
+        identities: [USBPDSOP],
         showRaw: Bool,
         adapter: AdapterInfo? = nil,
-        thunderboltSwitches: [ThunderboltSwitch] = [],
+        thunderboltSwitches: [IOThunderboltSwitch] = [],
         isDesktopMac: Bool = false,
+        batteryFullyCharged: Bool? = nil,
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
         trmTransports: [TRMTransport] = [],
-        cioCapabilities: [CIOCableCapability] = []
+        cioCapabilities: [CIOCableCapability] = [],
+        usbDevices: [USBDevice] = []
     ) throws -> String {
+        let activePortCount = ports.filter { $0.connectionActive == true }.count
         let output = Output(
             version: AppInfo.version,
             isDesktopMac: isDesktopMac,
             adapter: adapter.map { AdapterDTO(adapter: $0) },
             ports: ports.map { port in
-                PortDTO(
+                let portSources = sources.filter { $0.portKey == port.portKey }
+                let wattageSource = ChargerWattageSource.resolve(
+                    portSources: portSources,
+                    activePortCount: activePortCount,
+                    adapter: adapter
+                )
+                return PortDTO(
                     port: port,
-                    sources: sources.filter { $0.portKey == port.portKey },
+                    sources: portSources,
                     identities: identities.filter { $0.portKey == port.portKey },
                     thunderboltSwitches: thunderboltSwitches,
                     showRaw: showRaw,
@@ -29,10 +38,13 @@ public enum JSONFormatter {
                     federatedIdentities: federatedIdentities,
                     usb3Transports: usb3Transports.filter { $0.portKey == port.portKey },
                     trmTransports: trmTransports.filter { $0.portKey == port.portKey },
-                    cioCapability: cioCapabilities.first { $0.portKey == port.portKey }
+                    cioCapability: cioCapabilities.first { $0.portKey == port.portKey },
+                    chargerWattageSource: wattageSource,
+                    batteryFullyCharged: batteryFullyCharged,
+                    usbDevices: port.matchingDevices(from: usbDevices)
                 )
             },
-            thunderboltSwitches: thunderboltSwitches.map { ThunderboltSwitchDTO(sw: $0) }
+            thunderboltSwitches: thunderboltSwitches.map { IOThunderboltSwitchDTO(sw: $0) }
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -52,7 +64,7 @@ private struct Output: Codable {
     /// machines without a TB controller, or before the watcher has data).
     /// Per-port `thunderboltSwitchUID` references this graph by UID rather
     /// than nesting the whole switch under each port.
-    let thunderboltSwitches: [ThunderboltSwitchDTO]
+    let thunderboltSwitches: [IOThunderboltSwitchDTO]
 }
 
 private struct PortDTO: Codable {
@@ -70,6 +82,10 @@ private struct PortDTO: Codable {
     let cable: CableDTO?
     let device: DeviceDTO?
     let charging: ChargingDTO?
+    /// Data-speed "weakest link" verdict: which of cable / Mac port /
+    /// device limits the negotiated data rate. Nil when there's no data
+    /// link to judge on this port.
+    let dataLink: DataLinkDTO?
     /// UID of the host root Thunderbolt switch this port maps to, if any.
     /// Resolved via the `Socket ID` <-> `@N` join key. Encoded as Int64
     /// (signed, matching IOKit's representation; some vendors use the
@@ -85,16 +101,19 @@ private struct PortDTO: Codable {
     let rawProperties: [String: String]?
 
     init(
-        port: USBCPort,
+        port: AppleHPMInterface,
         sources: [PowerSource],
-        identities: [PDIdentity],
-        thunderboltSwitches: [ThunderboltSwitch],
+        identities: [USBPDSOP],
+        thunderboltSwitches: [IOThunderboltSwitch],
         showRaw: Bool,
         adapter: AdapterInfo?,
         federatedIdentities: [FederatedIdentity] = [],
         usb3Transports: [USB3Transport] = [],
         trmTransports: [TRMTransport] = [],
-        cioCapability: CIOCableCapability? = nil
+        cioCapability: CIOCableCapability? = nil,
+        chargerWattageSource: ChargerWattageSource = .unknown,
+        batteryFullyCharged: Bool? = nil,
+        usbDevices: [USBDevice] = []
     ) {
         self.name = port.portDescription ?? port.serviceName
         self.type = port.portTypeDescription
@@ -106,9 +125,14 @@ private struct PortDTO: Codable {
             port: port,
             sources: sources,
             identities: identities,
+            devices: usbDevices,
             thunderboltSwitches: thunderboltSwitches,
             federatedIdentities: federatedIdentities,
-            usb3Transports: usb3Transports
+            usb3Transports: usb3Transports,
+            cioCapability: cioCapability,
+            chargerWattageSource: chargerWattageSource,
+            batteryFullyCharged: batteryFullyCharged,
+            adapter: adapter
         )
         self.status = String(describing: summary.status)
         self.headline = summary.headline
@@ -123,12 +147,15 @@ private struct PortDTO: Codable {
             self.thunderboltSwitchUID = nil
         }
 
+        let deviceUsb3Speed = usbDevices
+            .first { $0.isRootDevice && ($0.speedRaw ?? 0) >= 3 }?
+            .usb3SpeedLabel
         self.transports = TransportsDTO(
             supported: port.transportsSupported,
             active: port.transportsActive,
             provisioned: port.transportsProvisioned,
             displayPortLanes: port.dpLaneConfig?.label,
-            usb3Speed: usb3Transports.first?.speedLabel
+            usb3Speed: deviceUsb3Speed ?? usb3Transports.first?.speedLabel
         )
 
         self.powerSources = sources.map { PowerSourceDTO(source: $0) }
@@ -141,8 +168,17 @@ private struct PortDTO: Codable {
         let partner = identities.first { $0.endpoint == .sop }
         self.device = partner.map { DeviceDTO(identity: $0) }
 
-        self.charging = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter)
+        self.charging = ChargingDiagnostic(port: port, sources: sources, identities: identities, adapter: adapter, wattageSource: chargerWattageSource, batteryFullyCharged: batteryFullyCharged)
             .map { ChargingDTO(diagnostic: $0) }
+
+        self.dataLink = DataLinkDiagnostic(
+            port: port,
+            identities: identities,
+            devices: usbDevices,
+            usb3Transports: usb3Transports,
+            cio: cioCapability,
+            thunderboltSwitches: thunderboltSwitches
+        ).map { DataLinkDTO(diagnostic: $0) }
 
         self.trm = trmTransports.isEmpty ? nil : trmTransports.map { TRMTransportDTO(transport: $0) }
         self.cio = cioCapability.map { CIOCableCapabilityDTO(capability: $0) }
@@ -200,7 +236,7 @@ private struct CableDTO: Codable {
     let active: ActiveCableDTO?
     let trustFlags: [TrustFlagDTO]?
 
-    init(identity: PDIdentity) {
+    init(identity: USBPDSOP) {
         self.endpoint = identity.endpoint.rawValue
         self.vendorID = identity.vendorID
         self.vendorName = VendorDB.name(for: identity.vendorID)
@@ -276,7 +312,7 @@ private struct DeviceDTO: Codable {
     let productID: Int
     let pdRevision: String?
 
-    init(identity: PDIdentity) {
+    init(identity: USBPDSOP) {
         let header = identity.idHeader
         self.kind = header.map {
             $0.ufpProductType != .undefined ? $0.ufpProductType.label : $0.dfpProductType.label
@@ -293,7 +329,7 @@ private struct DeviceDTO: Codable {
 /// One Thunderbolt switch in JSON form. Encoded once at the top level of
 /// the snapshot; per-port references use `thunderboltSwitchUID`. Avoids
 /// duplicating the whole graph under every port.
-private struct ThunderboltSwitchDTO: Codable {
+private struct IOThunderboltSwitchDTO: Codable {
     let uid: Int64
     let className: String
     let vendorID: Int
@@ -306,9 +342,9 @@ private struct ThunderboltSwitchDTO: Codable {
     let maxPortNumber: Int
     let supportedSpeedMask: Int
     let parentSwitchUID: Int64?
-    let ports: [ThunderboltPortDTO]
+    let ports: [IOThunderboltPortDTO]
 
-    init(sw: ThunderboltSwitch) {
+    init(sw: IOThunderboltSwitch) {
         self.uid = sw.id
         self.className = sw.className
         self.vendorID = sw.vendorID
@@ -321,11 +357,11 @@ private struct ThunderboltSwitchDTO: Codable {
         self.maxPortNumber = sw.maxPortNumber
         self.supportedSpeedMask = Int(sw.supportedSpeed.rawValue)
         self.parentSwitchUID = sw.parentSwitchUID
-        self.ports = sw.ports.map { ThunderboltPortDTO(port: $0) }
+        self.ports = sw.ports.map { IOThunderboltPortDTO(port: $0) }
     }
 }
 
-private struct ThunderboltPortDTO: Codable {
+private struct IOThunderboltPortDTO: Codable {
     let portNumber: Int
     let socketID: String?
     let adapterType: String
@@ -340,7 +376,7 @@ private struct ThunderboltPortDTO: Codable {
     let rawTargetSpeed: Int?
     let linkBandwidthRaw: Int?
 
-    init(port: ThunderboltPort) {
+    init(port: IOThunderboltPort) {
         self.portNumber = port.portNumber
         self.socketID = port.socketID
         self.adapterType = Self.adapterTypeLabel(port.adapterType)
@@ -464,6 +500,31 @@ private struct ChargingDTO: Codable {
     }
 }
 
+private struct DataLinkDTO: Codable {
+    let summary: String
+    let detail: String
+    let bottleneck: String
+    let isWarning: Bool
+    /// True when the cable e-marker and the Thunderbolt controller
+    /// disagree about the cable's speed (issue #111).
+    let cableSignalConflict: Bool
+
+    init(diagnostic: DataLinkDiagnostic) {
+        self.summary = diagnostic.summary
+        self.detail = diagnostic.detail
+        self.isWarning = diagnostic.isWarning
+        self.cableSignalConflict = diagnostic.cableSignalConflict
+        switch diagnostic.bottleneck {
+        case .fine: self.bottleneck = "fine"
+        case .cableLimit: self.bottleneck = "cableLimit"
+        case .hostLimit: self.bottleneck = "hostLimit"
+        case .deviceLimit: self.bottleneck = "deviceLimit"
+        case .degraded: self.bottleneck = "degraded"
+        case .unknownCable: self.bottleneck = "unknownCable"
+        }
+    }
+}
+
 /// System-wide charger info from IOPSCopyExternalPowerAdapterDetails.
 private struct AdapterDTO: Codable {
     let watts: Int?
@@ -475,6 +536,14 @@ private struct AdapterDTO: Codable {
     let isWireless: Bool?
     /// The charger's HVC menu: every voltage/current combo it supports.
     let hvcMenu: [AdapterHVCEntryDTO]?
+    /// Charger brand from IOKit `AdapterDetails.Manufacturer`. Present
+    /// mostly on Apple bricks. Omitted when nil or empty.
+    let manufacturer: String?
+    /// Product name from IOKit `AdapterDetails.Name`. Pairs with
+    /// `manufacturer`. Omitted when nil or empty.
+    let name: String?
+    /// Apple-internal model code (e.g. "0x7019"). Omitted when absent.
+    let model: String?
 
     init(adapter: AdapterInfo) {
         self.watts = adapter.watts
@@ -487,6 +556,9 @@ private struct AdapterDTO: Codable {
         self.hvcMenu = adapter.hvcMenu.isEmpty ? nil : adapter.hvcMenu.map {
             AdapterHVCEntryDTO(voltageMV: $0.voltageMV, currentMA: $0.currentMA)
         }
+        self.manufacturer = adapter.manufacturer
+        self.name = adapter.name
+        self.model = adapter.model
     }
 }
 

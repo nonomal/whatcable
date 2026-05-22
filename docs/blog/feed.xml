@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+  <title>WhatCable Blog</title>
+  <subtitle>USB-C cables, Thunderbolt, and the deep weeds of port diagnostics.</subtitle>
+  <link href="https://www.whatcable.uk/blog/feed.xml" rel="self" />
+  <link href="https://www.whatcable.uk/blog" />
+  <updated>2026-05-21T00:00:00Z</updated>
+  <id>https://www.whatcable.uk/blog</id>
+  <author>
+    <name>Darryl Morley</name>
+  </author>
+  <entry>
+    <title>Why is my MacBook charging so slow? A real diagnosis.</title>
+    <link href="https://www.whatcable.uk/blog/why-is-my-macbook-charging-so-slow" />
+    <updated>2026-05-21T00:00:00Z</updated>
+    <id>https://www.whatcable.uk/blog/why-is-my-macbook-charging-so-slow</id>
+    <content type="html">&lt;p&gt;In macOS Tahoe 26.4, Apple added a &amp;quot;Slow Charger&amp;quot; label. Plug in a charger that can&#39;t deliver full power and the menu bar tells you so.&lt;/p&gt;
+&lt;p&gt;What it doesn&#39;t tell you is why.&lt;/p&gt;
+&lt;p&gt;That&#39;s the gap. The OS confirms what you already suspected (yes, it&#39;s charging slowly) and then leaves you to guess whether the problem is the adapter, the cable, the port, the battery, or the laptop itself. Most of the time it&#39;s one of two things, and both are easy to confirm if you know where to look.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://images.whatcable.uk/1779372798303-macbook-magsafe.jpg&quot; alt=&quot;A MacBook with a MagSafe cable plugged into the left side&quot; title=&quot;MagSafe charging a MacBook&quot;&gt;&lt;/p&gt;
+&lt;h2&gt;The actual causes, in order of how often they happen&lt;/h2&gt;
+&lt;h3&gt;1. The adapter doesn&#39;t have enough watts for your Mac&lt;/h3&gt;
+&lt;p&gt;This is the most common cause by a long way. Apple publishes minimum wattage figures for each MacBook and they&#39;re not suggestions, they&#39;re the floor for full-speed charging. Anything below the minimum and the Mac throttles down to whatever it can pull.&lt;/p&gt;
+&lt;p&gt;The rough numbers, from &lt;a href=&quot;https://support.apple.com/en-us/109509&quot;&gt;Apple&#39;s adapter guide&lt;/a&gt;:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;MacBook Air (M-series):&lt;/strong&gt; 30W minimum&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MacBook Pro 14&amp;quot;:&lt;/strong&gt; 70W for the base chip, 96W for Pro/Max&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;MacBook Pro 16&amp;quot;:&lt;/strong&gt; 140W&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;A 30W adapter charging a 16&amp;quot; MBP will work, but it&#39;ll feel like it&#39;s not charging at all under load. Sometimes the battery still drains because the Mac is using more than the adapter can supply.&lt;/p&gt;
+&lt;p&gt;How to confirm: check the wattage printed on the adapter itself. If it&#39;s below the minimum, that&#39;s your answer.&lt;/p&gt;
+&lt;h3&gt;2. The cable is rated below the adapter&lt;/h3&gt;
+&lt;p&gt;This one trips up a lot of people because the adapter and the Mac are both capable, but the cable in the middle is the bottleneck.&lt;/p&gt;
+&lt;p&gt;USB-C cables carry an e-marker chip that declares what they can handle. A cable rated for 60W (3A at 20V) physically cannot pass 96W (4.7A at 20V) no matter what the adapter or the laptop ask for. The PD negotiation drops to whatever the weakest link supports.&lt;/p&gt;
+&lt;p&gt;The giveaway: you bought a 96W or 140W charger, the Mac is the right model, and charging is still slow. Nine times out of ten it&#39;s the cable. Especially if it&#39;s the cable that came in the box with something else, or a generic spare from a drawer.&lt;/p&gt;
+&lt;p&gt;How to confirm: this is where it gets fiddly without help. The cable&#39;s rating is usually not printed on the cable. You can&#39;t see the e-marker contents from the Finder or from System Information. We&#39;ll come back to this.&lt;/p&gt;
+&lt;h3&gt;3. Optimised Battery Charging is holding at 80%&lt;/h3&gt;
+&lt;p&gt;macOS learns your routine and parks the battery at 80% if it thinks you&#39;re about to leave it plugged in for hours. From its perspective this is a feature, since holding at 80% is much kinder to long-term battery health than sitting at 100% all day.&lt;/p&gt;
+&lt;p&gt;From your perspective it looks like the charger isn&#39;t doing its job.&lt;/p&gt;
+&lt;p&gt;How to confirm: System Settings → Battery → Battery Health → check the charging schedule. If Optimised Charging is on and the battery is sitting at exactly 80%, that&#39;s the cause. Click &amp;quot;Charge to 100%&amp;quot; if you actually need it now.&lt;/p&gt;
+&lt;h3&gt;4. The workload is outpacing the supply&lt;/h3&gt;
+&lt;p&gt;If you&#39;re rendering video, compiling a large project, or running a sustained GPU load on a 14&amp;quot; or 16&amp;quot; MBP, you can genuinely draw more than the adapter delivers. The battery makes up the difference and the percentage creeps down despite being plugged in.&lt;/p&gt;
+&lt;p&gt;How to confirm: open Activity Monitor → Energy tab → look at Energy Impact. If you&#39;re maxing out CPU or GPU, you&#39;re not going to charge while doing it on a 30W or 70W adapter.&lt;/p&gt;
+&lt;h3&gt;5. Dirty port, damaged cable, hardware fault&lt;/h3&gt;
+&lt;p&gt;The boring causes, but they happen. A USB-C port full of pocket lint won&#39;t seat the connector properly and the contacts won&#39;t make. A cable that&#39;s been kinked too many times near the connector can lose one of its conductors and drop from 96W to 60W (or worse) without looking obviously broken.&lt;/p&gt;
+&lt;p&gt;How to confirm: try a different port on the same Mac. Try the same charger and cable on a different Mac if you can. If you get fast charging on a different port but not the original, the port&#39;s the problem. If you can&#39;t see anything obvious in the port, a wooden toothpick (never metal) is the safe tool for clearing lint.&lt;/p&gt;
+&lt;p&gt;If you&#39;re on an Intel Mac and you&#39;ve exhausted everything else, an SMC reset is the next step. On Apple Silicon there&#39;s nothing to reset, it&#39;s all handled differently.&lt;/p&gt;
+&lt;h2&gt;How to actually check what&#39;s happening&lt;/h2&gt;
+&lt;p&gt;The diagnostic question that matters: what is the cable, adapter, and Mac actually negotiating right now?&lt;/p&gt;
+&lt;p&gt;USB Power Delivery is a conversation. The adapter says &amp;quot;I can offer 5V/3A, 9V/3A, 15V/3A, 20V/4.7A.&amp;quot; The Mac picks the highest its battery can accept. The cable&#39;s e-marker sets the ceiling on current. They agree on a contract, and that contract is what determines your charging speed.&lt;/p&gt;
+&lt;p&gt;macOS knows all of this. It reads the e-marker, it tracks the active PD contract, it knows what each port can do. It just doesn&#39;t surface any of it.&lt;/p&gt;
+&lt;p&gt;This is what &lt;a href=&quot;https://www.whatcable.uk/&quot;&gt;WhatCable&lt;/a&gt; was built for. It sits in the menu bar and reads what macOS already has, then tells you in English:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The cable&#39;s e-marker rating (max watts, max current, max data speed)&lt;/li&gt;
+&lt;li&gt;The active PD contract (volts and amps being negotiated right now)&lt;/li&gt;
+&lt;li&gt;What the port itself can do&lt;/li&gt;
+&lt;li&gt;Where the bottleneck is, if there is one&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;img src=&quot;https://images.whatcable.uk/1779373950977-screenshot-2026-05-19-at-22-02-19.webp&quot; alt=&quot;WhatCable showing the active PD contract — 20V at 2.99A (60W) — alongside the cable&#39;s e-marker rating of 250W, confirming the cable is not the bottleneck&quot; title=&quot;WhatCable reading the active power contract and cable e-marker&quot;&gt;&lt;/p&gt;
+&lt;p&gt;A healthy reading on a 16&amp;quot; MBP with a 140W adapter and a 240W USB4 cable: 20V at around 5A, cable rated for 240W, port rated for 140W. Everything matches.&lt;/p&gt;
+&lt;p&gt;A throttled reading on the same setup but with a wrong cable: 20V at 3A, cable rated for 60W, port still rated for 140W. The cable is the bottleneck and you can see it.&lt;/p&gt;
+&lt;p&gt;That&#39;s the answer to &amp;quot;why is it slow.&amp;quot; You can stop guessing.&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;If you want to see exactly what your own setup is negotiating, &lt;a href=&quot;https://www.whatcable.uk/&quot;&gt;WhatCable&lt;/a&gt; reads the PD contract and the cable e-marker and shows it in the menu bar. The Slow Charger Indicator tells you there&#39;s a problem. WhatCable tells you which link in the chain caused it.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <title>Hello, world</title>
+    <link href="https://www.whatcable.uk/blog/hello-world" />
+    <updated>2026-05-21T00:00:00Z</updated>
+    <id>https://www.whatcable.uk/blog/hello-world</id>
+    <content type="html">&lt;p&gt;Welcome to the WhatCable blog.&lt;/p&gt;
+&lt;p&gt;This is where I&#39;ll write about the messy, fun world underneath USB-C: why your
+fast cable charges slowly, what a Thunderbolt 5 cable actually negotiates with
+your Mac, which e-marker fields are honest and which are theatre, and the odd
+counterfeit or quirk that turns up in cable reports.&lt;/p&gt;
+&lt;h2&gt;What you&#39;ll find here&lt;/h2&gt;
+&lt;p&gt;A few rough buckets:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Releases&lt;/strong&gt;: what shipped in the latest WhatCable version, and why.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Deep dives&lt;/strong&gt;: long-form pieces on the spec, the IOKit data, and how the
+app reads it.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Investigations&lt;/strong&gt;: single-cable mysteries, mostly from community reports.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Guides&lt;/strong&gt;: practical &amp;quot;how do I know if X&amp;quot; walkthroughs.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Notes&lt;/strong&gt;: short observations, dev diary entries, posts like this one.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;How to follow along&lt;/h2&gt;
+&lt;p&gt;Drop the &lt;a href=&quot;https://www.whatcable.uk/blog/feed.xml&quot;&gt;Atom feed&lt;/a&gt; into your RSS reader and you&#39;re set. No
+newsletter, no tracking, no comments. If you want to chime in, that&#39;s what
+&lt;a href=&quot;https://github.com/darrylmorley/whatcable/issues&quot;&gt;GitHub issues&lt;/a&gt; are for.&lt;/p&gt;
+</content>
+  </entry>
+  <entry>
+    <title>Thunderbolt vs USB-C: what the connector hides</title>
+    <link href="https://www.whatcable.uk/blog/thunderbolt-vs-usb-c" />
+    <updated>2026-05-21T00:00:00Z</updated>
+    <id>https://www.whatcable.uk/blog/thunderbolt-vs-usb-c</id>
+    <content type="html">&lt;p&gt;USB-C is the shape of the connector. Thunderbolt is one of several high-speed protocols that uses that shape.&lt;/p&gt;
+&lt;p&gt;That sentence is the entire answer to the headline question, and every page that ranks for this query opens with some version of it. The reason it keeps getting asked is that the visual is identical. A Thunderbolt 4 port and a basic USB-C 2.0 port look the same. The cables look the same. The plugs go in the same way. What changes is what&#39;s happening behind the connector.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://images.whatcable.uk/1779375024963-usb-c-cable-emarker-cutaway.webp&quot; alt=&quot;Cutaway illustration of a USB-C cable showing the e-marker chip and icons for Thunderbolt, USB data, power delivery, and DisplayPort capability&quot; title=&quot;What&#39;s normally hidden inside a USB-C cable&quot;&gt;&lt;/p&gt;
+&lt;p&gt;Here&#39;s the breakdown.&lt;/p&gt;
+&lt;h2&gt;The comparison at a glance&lt;/h2&gt;
+&lt;div class=&quot;table-wrap&quot;&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Standard&lt;/th&gt;
+&lt;th&gt;Max data rate&lt;/th&gt;
+&lt;th&gt;Video&lt;/th&gt;
+&lt;th&gt;Power Delivery&lt;/th&gt;
+&lt;th&gt;Daisy chain&lt;/th&gt;
+&lt;th&gt;Cable needed&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;USB 2.0 (USB-C)&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;480 Mbps&lt;/td&gt;
+&lt;td&gt;None&lt;/td&gt;
+&lt;td&gt;Up to 240W (PD 3.1)&lt;/td&gt;
+&lt;td&gt;No&lt;/td&gt;
+&lt;td&gt;Basic USB-C&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;USB 3.2 Gen 2x2&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;20 Gbps&lt;/td&gt;
+&lt;td&gt;DisplayPort Alt Mode&lt;/td&gt;
+&lt;td&gt;Up to 240W&lt;/td&gt;
+&lt;td&gt;No&lt;/td&gt;
+&lt;td&gt;USB 3.2 cable&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Thunderbolt 3&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;40 Gbps&lt;/td&gt;
+&lt;td&gt;2x 4K @ 60Hz or 1x 5K&lt;/td&gt;
+&lt;td&gt;Up to 100W&lt;/td&gt;
+&lt;td&gt;Yes (up to 6)&lt;/td&gt;
+&lt;td&gt;TB3-certified&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;USB4&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;20 or 40 Gbps&lt;/td&gt;
+&lt;td&gt;DisplayPort 1.4&lt;/td&gt;
+&lt;td&gt;Up to 240W&lt;/td&gt;
+&lt;td&gt;Limited&lt;/td&gt;
+&lt;td&gt;USB4 cable&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Thunderbolt 4&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;40 Gbps&lt;/td&gt;
+&lt;td&gt;2x 4K or 1x 8K&lt;/td&gt;
+&lt;td&gt;Min 15W, up to 100W&lt;/td&gt;
+&lt;td&gt;Yes (up to 6)&lt;/td&gt;
+&lt;td&gt;TB4-certified&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Thunderbolt 5&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;80 Gbps (120 Gbps boost)&lt;/td&gt;
+&lt;td&gt;3x 4K @ 144Hz&lt;/td&gt;
+&lt;td&gt;Up to 240W&lt;/td&gt;
+&lt;td&gt;Yes&lt;/td&gt;
+&lt;td&gt;TB5-certified active&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;&lt;/div&gt;
+&lt;p&gt;The table is the artefact most people are looking for. The rest of this post is the why.&lt;/p&gt;
+&lt;h2&gt;Thunderbolt 3 vs USB-C&lt;/h2&gt;
+&lt;p&gt;TB3 was the first generation to share the USB-C connector, which is when the confusion started. Before TB3, Thunderbolt used Mini DisplayPort. After TB3, you couldn&#39;t tell a Thunderbolt port from a USB-C port without checking the lightning bolt icon next to it.&lt;/p&gt;
+&lt;p&gt;Underneath, TB3 is doing a lot more than basic USB-C. It tunnels PCIe and DisplayPort over the same wire, which is what makes external GPUs and high-bandwidth docks possible. It runs at 40 Gbps where basic USB-C 3.2 caps out at 20 Gbps. It supports daisy-chaining up to six devices off a single port.&lt;/p&gt;
+&lt;p&gt;The catch: TB3 cables are not the same as USB-C cables. A TB3-certified cable contains active electronics that maintain signal integrity over longer runs, which is why a 2m TB3 cable costs significantly more than a 2m USB-C cable. Use a generic USB-C cable in a TB3 port and you&#39;ll get USB speeds, not Thunderbolt speeds.&lt;/p&gt;
+&lt;h2&gt;Thunderbolt 4 vs USB-C&lt;/h2&gt;
+&lt;p&gt;TB4 didn&#39;t push the headline speed up. It&#39;s still 40 Gbps, same as TB3. What TB4 did was tighten the minimum requirements.&lt;/p&gt;
+&lt;p&gt;Where TB3 said &amp;quot;up to 40 Gbps&amp;quot;, TB4 says &amp;quot;must be 40 Gbps&amp;quot;. Where TB3 video support varied by host, TB4 requires support for two 4K displays. Where TB3 had no minimum charging spec, TB4 requires at least 15W for accessory charging and 100W host charging on at least one port. TB4 also requires support for PCIe data tunneling at higher minimum rates than TB3.&lt;/p&gt;
+&lt;p&gt;For the user, TB4 means fewer surprises. A TB4-certified port and a TB4-certified cable will hit the spec sheet every time. You don&#39;t have to read the small print.&lt;/p&gt;
+&lt;h2&gt;Thunderbolt 5 vs USB-C&lt;/h2&gt;
+&lt;p&gt;TB5 is the current top of the pile, on Macs with M4 Pro and M4 Max chips and later. The headline number is 80 Gbps symmetric, double what TB3 and TB4 offered. In &amp;quot;Bandwidth Boost&amp;quot; mode it goes to 120 Gbps in one direction and 40 Gbps in the other, designed for driving very high-refresh-rate displays.&lt;/p&gt;
+&lt;p&gt;TB5 also bumps the power spec. Up to 240W of Power Delivery, matching USB PD 3.1&#39;s ceiling.&lt;/p&gt;
+&lt;p&gt;For a basic USB-C port, none of this applies. A USB-C device in a TB5 port still runs at USB speeds. A TB5 device in a basic USB-C port either drops to USB mode or doesn&#39;t work at all, depending on the device.&lt;/p&gt;
+&lt;p&gt;TB5 cables are required to be active. The bandwidth is too high for passive copper at any meaningful length.&lt;/p&gt;
+&lt;h2&gt;USB4 vs Thunderbolt 4&lt;/h2&gt;
+&lt;p&gt;This is the comparison that confuses people the most, because USB4 and Thunderbolt 4 are essentially the same thing under different names.&lt;/p&gt;
+&lt;p&gt;USB4 was developed in collaboration with Intel and licensed from the Thunderbolt 3 specification. The result is that USB4 and TB4 share most of their underlying mechanics. Both can run at 40 Gbps. Both tunnel DisplayPort and PCIe over USB-C. Both support up to 240W via USB PD 3.1.&lt;/p&gt;
+&lt;p&gt;The difference is in what&#39;s mandatory.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;USB4&lt;/strong&gt; has two tiers, &lt;a href=&quot;https://www.usb.org/usb4&quot;&gt;20 Gbps and 40 Gbps&lt;/a&gt;. Many features are optional. A USB4 port might or might not support PCIe tunneling, might or might not hit the full 40 Gbps, might or might not charge external devices.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Thunderbolt 4&lt;/strong&gt; is strict. All features are mandatory at the full spec. Buy something labelled TB4 and you know what you&#39;re getting.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;In practice, if you&#39;ve got a Mac with a TB4 or TB5 port and you plug in a USB4 device, it should work. The reverse (USB4 host, Thunderbolt device) is also fine for Thunderbolt 3 and later devices, because USB4 hosts are required to be backward compatible with TB3.&lt;/p&gt;
+&lt;h2&gt;How to tell what you actually have&lt;/h2&gt;
+&lt;p&gt;The visual cue is the lightning bolt icon next to the port. If you see one, the port supports Thunderbolt. If you don&#39;t, it&#39;s basic USB-C.&lt;/p&gt;
+&lt;p&gt;The icon tells you what the port can do. It does not tell you what your cable can do.&lt;/p&gt;
+&lt;p&gt;This is the part nobody talks about. A USB-C cable in a Thunderbolt port is still a USB-C cable. The port will negotiate down to whatever the cable supports. You can have a TB5 port and a 40 Gbps device and still get USB 3.2 speeds because the cable in the middle is a 20 Gbps cable that came with a hard drive five years ago.&lt;/p&gt;
+&lt;p&gt;Every USB-C cable rated above 60W and above USB 2.0 speeds contains an e-marker chip. The chip declares what the cable can carry: max current, max voltage, max data rate. macOS reads this chip every time you connect a cable. It just doesn&#39;t show you what it reads.&lt;/p&gt;
+&lt;p&gt;&lt;a href=&quot;https://www.whatcable.uk/&quot;&gt;WhatCable&lt;/a&gt; reads the e-marker and shows you what the cable is. Not what you hoped it was, not what the box claimed, what the cable itself is telling the Mac. If you&#39;ve ever wondered whether the &amp;quot;Thunderbolt cable&amp;quot; you bought online is actually Thunderbolt, this is how you check. You can also see how your cable rates against known references in the &lt;a href=&quot;https://www.whatcable.uk/cables&quot;&gt;cables database&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://images.whatcable.uk/1779375774954-whatcable-screenshot-usb4-cable-readout.webp&quot; alt=&quot;WhatCable showing a USB-C cable identified as USB4 Gen 3, 40 Gbps, Thunderbolt 4 class, rated for 5A at 50V, with a confirmation that the connected 10 Gbps drive is running at full device speed&quot; title=&quot;WhatCable identifying a USB4 cable in the menu bar&quot;&gt;&lt;/p&gt;
+&lt;h2&gt;Compatibility, both directions&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;USB-C device into a Thunderbolt port:&lt;/strong&gt; works, at USB speeds. The TB port has full USB-C compatibility built in. Plug in a phone, a basic USB hub, or a regular external drive and it&#39;ll run at whatever the device supports.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Thunderbolt device into a USB-C port:&lt;/strong&gt; often doesn&#39;t work. Thunderbolt requires an explicit handshake between host and device that USB-C ports don&#39;t perform. Some Thunderbolt docks have a USB fallback mode and will partially work, with reduced features. Most TB-only accessories (external GPUs, high-end audio interfaces, fast NVMe enclosures) will simply not appear.&lt;/p&gt;
+&lt;p&gt;This is why &amp;quot;is this port USB-C or Thunderbolt&amp;quot; matters before you spend money on a TB accessory.&lt;/p&gt;
+&lt;h2&gt;What about charging&lt;/h2&gt;
+&lt;p&gt;Both USB-C and Thunderbolt use the same USB Power Delivery spec for charging. The difference is the minimums, not the maximums.&lt;/p&gt;
+&lt;p&gt;A TB4 host port has to deliver at least 15W. A TB4 PC host port has to deliver at least 100W on at least one port. Basic USB-C has no such minimum.&lt;/p&gt;
+&lt;p&gt;For charging specifically, the protocol matters less than the wattage. A 140W basic USB-C charger will charge a 16&amp;quot; MacBook Pro just as fast as a 140W Thunderbolt cable would, because they&#39;re using the same PD spec underneath. We&#39;ve written about &lt;a href=&quot;https://www.whatcable.uk/blog/why-is-my-macbook-charging-so-slow&quot;&gt;why your MacBook might still charge slowly&lt;/a&gt; even with the right adapter, and it almost always comes down to the cable.&lt;/p&gt;
+&lt;h2&gt;Cost and why TB cables are expensive&lt;/h2&gt;
+&lt;p&gt;A passive USB-C cable is cheap because it&#39;s just wires. It works because the signal at USB 2.0 speeds is forgiving over a metre or two of copper.&lt;/p&gt;
+&lt;p&gt;A Thunderbolt cable at 40 Gbps or 80 Gbps cannot be passive at any useful length. The signal degrades too fast. TB cables contain active electronics that reshape the signal at the connector, which is why a 2m TB4 cable costs five times what a 2m USB-C cable does. TB5 cables go further, requiring active electronics in the connectors even at short lengths.&lt;/p&gt;
+&lt;p&gt;If you see a &amp;quot;Thunderbolt 5 cable&amp;quot; for £8 on a marketplace, it probably isn&#39;t one.&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;If you want to see whether your cable is genuinely Thunderbolt or just USB-C in a Thunderbolt port, &lt;a href=&quot;https://www.whatcable.uk/&quot;&gt;WhatCable&lt;/a&gt; reads the e-marker and tells you straight.&lt;/p&gt;
+</content>
+  </entry>
+</feed>

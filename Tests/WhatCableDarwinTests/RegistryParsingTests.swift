@@ -1,45 +1,53 @@
-import XCTest
+import Foundation
+import Testing
 @testable import WhatCableCore
 @testable import WhatCableDarwinBackend
 
-final class RegistryParsingTests: XCTestCase {
-    func testUSBCPortWatcherScansM4MiniFrontPortClass() {
-        XCTAssertTrue(USBCPortWatcher.candidateClasses.contains("IOPort"))
+@Suite("Registry parsing")
+struct RegistryParsingTests {
+    @Test("AppleHPMInterfaceWatcher scans M4 Mini front port class")
+    func appleHPMInterfaceWatcherScansM4MiniFrontPortClass() {
+        #expect(AppleHPMInterfaceWatcher.candidateClasses.contains("IOPort"))
     }
 
-    func testUSBCPortWatcherExtractsBusIndexAcrossControllerNameShapes() {
-        XCTAssertEqual(USBCPortWatcher.busIndex(fromRegistryName: "hpm4@3"), 4)
-        XCTAssertEqual(USBCPortWatcher.busIndex(fromRegistryName: "atc1"), 1)
-        XCTAssertEqual(USBCPortWatcher.busIndex(fromRegistryName: "usb-drd2@2280000"), 2)
-        XCTAssertNil(USBCPortWatcher.busIndex(fromRegistryName: "hpm@3"))
-        XCTAssertNil(USBCPortWatcher.busIndex(fromRegistryName: "AppleT6000USBXHCI"))
+    @Test("AppleHPMInterfaceWatcher extracts busIndex across controller name shapes")
+    func appleHPMInterfaceWatcherExtractsBusIndexAcrossControllerNameShapes() {
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromRegistryName: "hpm4@3") == 4)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromRegistryName: "atc1") == 1)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromRegistryName: "usb-drd2@2280000") == 2)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromRegistryName: "hpm@3") == nil)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromRegistryName: "AppleT6000USBXHCI") == nil)
     }
 
-    func testUSBCPortWatcherExtractsLocationFallbackAsHex() {
-        XCTAssertEqual(USBCPortWatcher.busIndex(fromLocation: "1"), 1)
-        XCTAssertEqual(USBCPortWatcher.busIndex(fromLocation: "0A"), 10)
-        XCTAssertNil(USBCPortWatcher.busIndex(fromLocation: ""))
-        XCTAssertNil(USBCPortWatcher.busIndex(fromLocation: "Port-USB-C"))
+    @Test("AppleHPMInterfaceWatcher extracts location fallback as hex")
+    func appleHPMInterfaceWatcherExtractsLocationFallbackAsHex() {
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromLocation: "1") == 1)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromLocation: "0A") == 10)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromLocation: "") == nil)
+        #expect(AppleHPMInterfaceWatcher.busIndex(fromLocation: "Port-USB-C") == nil)
     }
 
-    func testUSBWatcherParsesUsbIOPortStringAndData() {
+    @Test("USBWatcher parses usbIOPort string and Data")
+    func usbWatcherParsesUsbIOPortStringAndData() {
         let path = "AppleARMIO/Port-USB-C@1"
-        XCTAssertEqual(USBWatcher.usbIOPortPath(from: path), path)
+        #expect(USBWatcher.usbIOPortPath(from: path) == path)
 
         let data = Data("AppleARMIO/Port-USB-C@2\u{0}".utf8)
-        XCTAssertEqual(USBWatcher.usbIOPortPath(from: data), "AppleARMIO/Port-USB-C@2")
+        #expect(USBWatcher.usbIOPortPath(from: data) == "AppleARMIO/Port-USB-C@2")
     }
 
-    func testUSBWatcherExtractsPortNameAndBusIndex() {
-        XCTAssertEqual(
-            USBWatcher.portName(fromUSBIOPortPath: "AppleARMIO/Port-USB-C@1"),
+    @Test("USBWatcher extracts port name and bus index")
+    func usbWatcherExtractsPortNameAndBusIndex() {
+        #expect(
+            USBWatcher.portName(fromUSBIOPortPath: "AppleARMIO/Port-USB-C@1") ==
             "Port-USB-C@1"
         )
-        XCTAssertNil(USBWatcher.portName(fromUSBIOPortPath: "AppleARMIO/AppleUSBHostPort@1"))
-        XCTAssertEqual(USBWatcher.busIndex(fromLocationID: 0x0300_0000), 3)
+        #expect(USBWatcher.portName(fromUSBIOPortPath: "AppleARMIO/AppleUSBHostPort@1") == nil)
+        #expect(USBWatcher.busIndex(fromLocationID: 0x0300_0000) == 3)
     }
 
-    func testPowerSourceWatcherHandlesBuiltInParentFieldsAndPriorityFallback() {
+    @Test("PowerSourceWatcher handles built-in parent fields and priority fallback")
+    func powerSourceWatcherHandlesBuiltInParentFieldsAndPriorityFallback() {
         let builtIn: [String: Any] = [
             "ParentBuiltInPortType": NSNumber(value: 0x11),
             "ParentBuiltInPortNumber": NSNumber(value: 2),
@@ -47,19 +55,20 @@ final class RegistryParsingTests: XCTestCase {
             "ParentPortNumber": NSNumber(value: 1)
         ]
         let builtInParent = PowerSourceWatcher.parentPortIdentity(from: builtIn)
-        XCTAssertEqual(builtInParent.type, 0x11)
-        XCTAssertEqual(builtInParent.number, 2)
+        #expect(builtInParent.type == 0x11)
+        #expect(builtInParent.number == 2)
 
         let priority: [String: Any] = [
             "ParentPortType": NSNumber(value: 0x11),
             "Priority": NSNumber(value: 0x0201)
         ]
         let priorityParent = PowerSourceWatcher.parentPortIdentity(from: priority)
-        XCTAssertEqual(priorityParent.type, 0x11)
-        XCTAssertEqual(priorityParent.number, 1)
+        #expect(priorityParent.type == 0x11)
+        #expect(priorityParent.number == 1)
     }
 
-    func testPDIdentityWatcherHandlesMagSafeCCAndSOP1Metadata() {
+    @Test("USBPDSOP watcher handles MagSafe CC and SOP1 metadata")
+    func usbPDSOPWatcherHandlesMagSafeCCAndSOP1Metadata() {
         let dict: [String: Any] = [
             "TransportTypeDescription": "CC",
             "ParentBuiltInPortType": NSNumber(value: 0x11),
@@ -70,15 +79,38 @@ final class RegistryParsingTests: XCTestCase {
                 "bcdDevice": NSNumber(value: 0x0100)
             ]
         ]
-        let metadata = PDIdentityWatcher.metadataDictionary(from: dict)
-        let parent = PDIdentityWatcher.parentPortIdentity(from: dict)
+        let metadata = USBPDSOPWatcher.metadataDictionary(from: dict)
+        let parent = USBPDSOPWatcher.parentPortIdentity(from: dict)
 
-        XCTAssertEqual(PDIdentityWatcher.endpoint(from: dict), .sopPrime)
-        XCTAssertEqual(parent.type, 0x11)
-        XCTAssertEqual(parent.number, 1)
-        XCTAssertEqual(PDIdentityWatcher.vendorID(from: dict, metadata: metadata), 0x05AC)
-        XCTAssertEqual(PDIdentityWatcher.productID(from: dict, metadata: metadata), 0x1234)
-        XCTAssertEqual(PDIdentityWatcher.bcdDevice(from: metadata), 0x0100)
+        #expect(USBPDSOPWatcher.endpoint(from: dict) == .sopPrime)
+        #expect(parent.type == 0x11)
+        #expect(parent.number == 1)
+        #expect(USBPDSOPWatcher.vendorID(from: dict, metadata: metadata) == 0x05AC)
+        #expect(USBPDSOPWatcher.productID(from: dict, metadata: metadata) == 0x1234)
+        #expect(USBPDSOPWatcher.bcdDevice(from: metadata) == 0x0100)
+    }
+
+    @Test("USBPDSOPWatcher handles built-in parent fields and priority fallback")
+    func usbPDSOPWatcherHandlesBuiltInParentFieldsAndPriorityFallback() {
+        // When both key variants are present with different values, the
+        // BuiltIn variant must win so PD identity and power data resolve to
+        // the same portKey (matches PowerSourceWatcher's order).
+        let builtIn: [String: Any] = [
+            "ParentBuiltInPortType": NSNumber(value: 0x11),
+            "ParentBuiltInPortNumber": NSNumber(value: 2),
+            "ParentPortType": NSNumber(value: 2),
+            "ParentPortNumber": NSNumber(value: 1)
+        ]
+        let builtInParent = USBPDSOPWatcher.parentPortIdentity(from: builtIn)
+        #expect(builtInParent.type == 0x11)
+        #expect(builtInParent.number == 2)
+
+        let priority: [String: Any] = [
+            "ParentPortType": NSNumber(value: 0x11),
+            "Priority": NSNumber(value: 0x0201)
+        ]
+        let priorityParent = USBPDSOPWatcher.parentPortIdentity(from: priority)
+        #expect(priorityParent.type == 0x11)
+        #expect(priorityParent.number == 1)
     }
 }
-

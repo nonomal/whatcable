@@ -73,3 +73,27 @@
 "%lld USB devices" = "%lld USB devices";
 "active" = "ակտիվ";
 "no active link" = "ակտիվ կապ չկա";
+
+
+/* Test Kit / Contribute Diagnostic Data consent + notifications (previously missing keys) */
+"%lld devices removed" = "%lld սարք հեռացվեց";
+"COMMUNITY" = "ՀԱՄԱՅՆՔ";
+"Contribute Diagnostic Data" = "Տրամադրել ախտորոշիչ տվյալներ";
+"Contribute Diagnostic Data…" = "Տրամադրել ախտորոշիչ տվյալներ…";
+"Privacy" = "Գաղտնիություն";
+"Pro" = "Pro";
+"Proceed" = "Շարունակել";
+"Raw IOKit registry properties for each USB-C port, your macOS version, and chip type. This is the same data visible in System Information." = "Յուրաքանչյուր USB-C պորտի անմշակ IOKit ռեգիստրի հատկությունները, ձեր macOS-ի տարբերակը և չիպի տեսակը: Սա նույն տվյալներն են, որոնք երևում են System Information-ում:";
+"What happens" = "Ինչ է տեղի ունենում";
+"What is collected" = "Ինչ է հավաքվում";
+"WhatCable runs 13 IOKit probes that read raw USB-C and Thunderbolt data from your Mac's port controller registers. The results are sent to a secure server to help improve cable and port detection." = "WhatCable-ը գործարկում է 13 IOKit զոնդ, որոնք կարդում են անմշակ USB-C և Thunderbolt տվյալներ ձեր Mac-ի պորտի կարգավորիչի ռեգիստրներից: Արդյունքներն ուղարկվում են ապահով սերվեր՝ մալուխների և պորտերի հայտնաբերումը բարելավելու համար:";
+"Your machine's hardware UUID is hashed with SHA-256 before sending. No names, accounts, serial numbers, or personal data are collected or stored." = "Ձեր մեքենայի սարքակազմի UUID-ն հեշավորվում է SHA-256-ով նախքան ուղարկելը: Ոչ մի անուն, հաշիվ, սերիական համար կամ անձնական տվյալ չի հավաքվում կամ պահվում:";
+
+/* Negotiation diagnostics + Pro UX (PR #55). English; non-English to be refined by the community translation flow. */
+"Back" = "Back";
+"Unpin (popover closes when you click away)" = "Unpin (popover closes when you click away)";
+"Open in a separate window" = "Open in a separate window";
+"Power Monitor" = "Power Monitor";
+"Negotiation Diagnostics" = "Negotiation Diagnostics";
+"Cable Diagnostics" = "Cable Diagnostics";
+"%@ Port %lld Diagnostics" = "%@ Port %lld Diagnostics";

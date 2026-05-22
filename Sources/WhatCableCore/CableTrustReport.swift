@@ -15,7 +15,7 @@ public struct CableTrustReport: Hashable {
     /// Build a report from an SOP' / SOP'' e-marker identity. Returns an
     /// empty report when no flags fire so callers can decide whether to
     /// render anything.
-    public init(identity: PDIdentity) {
+    public init(identity: USBPDSOP) {
         guard identity.endpoint == .sopPrime || identity.endpoint == .sopDoublePrime else {
             self.flags = []
             return

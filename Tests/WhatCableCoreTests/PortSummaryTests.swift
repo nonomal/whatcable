@@ -1,9 +1,10 @@
-import XCTest
+import Testing
 @testable import WhatCableCore
 
 /// Pins the user-facing headline strings produced by PortSummary so refactors
 /// of the state machine can't silently change what users see in the popover.
-final class PortSummaryTests: XCTestCase {
+@Suite("Port Summary")
+struct PortSummaryTests {
 
     // MARK: - Fixtures
 
@@ -79,126 +80,192 @@ final class PortSummaryTests: XCTestCase {
 
     // MARK: - Disconnected
 
-    func testNothingConnectedHeadline() {
+    @Test("Nothing connected headline")
+    func nothingConnectedHeadline() {
         let summary = PortSummary(port: makePort(connected: false))
-        XCTAssertEqual(summary.status, .empty)
-        XCTAssertEqual(summary.headline, "Nothing connected")
-        XCTAssertTrue(summary.bullets.isEmpty)
+        #expect(summary.status == .empty)
+        #expect(summary.headline == "Nothing connected")
+        #expect(summary.bullets.isEmpty)
     }
 
     // MARK: - Charging
 
-    func testChargingOnlyWithoutDataHasWattageSuffix() {
+    @Test("Charging only without data has wattage suffix")
+    func chargingOnlyWithoutDataHasWattageSuffix() {
         let port = makePort(connected: true, active: [], supported: ["USB2"])
         let summary = PortSummary(port: port, sources: [usbPD(maxW: 96, winningW: 60)])
-        XCTAssertEqual(summary.status, .charging)
-        XCTAssertEqual(summary.headline, "Charging · 96W charger")
+        #expect(summary.status == .charging)
+        #expect(summary.headline == "Charging · 96W charger")
     }
 
-    func testChargingOnlyWithoutPDOOptionsOmitsWattage() {
+    @Test("Charging only without PDO options omits wattage")
+    func chargingOnlyWithoutPDOOptionsOmitsWattage() {
         // No options means no wattage suffix; the headline just says "Charging only".
         let port = makePort(connected: true, active: [], supported: ["USB2"])
         let summary = PortSummary(port: port)
-        XCTAssertEqual(summary.status, .charging)
-        XCTAssertEqual(summary.headline, "Charging only")
+        #expect(summary.status == .charging)
+        #expect(summary.headline == "Charging only")
     }
 
-    func testMagSafeBrickIDSourceCountsAsChargingPower() {
+    @Test("MagSafe Brick ID source counts as charging power")
+    func magSafeBrickIDSourceCountsAsChargingPower() {
         let port = makePort(connected: true, active: [], supported: [])
         let summary = PortSummary(port: port, sources: [brickID(maxW: 140, winningW: 140)])
-        XCTAssertEqual(summary.status, .charging)
-        XCTAssertEqual(summary.headline, "Charging · 140W charger")
+        #expect(summary.status == .charging)
+        #expect(summary.headline == "Charging · 140W charger")
+    }
+
+    // MARK: - Battery full (issue #154)
+
+    @Test("Battery full overrides the charging headline")
+    func batteryFullOverridesChargingHeadline() {
+        let port = makePort(connected: true, active: [], supported: [])
+        let summary = PortSummary(
+            port: port,
+            sources: [brickID(maxW: 140, winningW: 140)],
+            batteryFullyCharged: true
+        )
+        #expect(summary.status == .batteryFull)
+        #expect(summary.headline == "Plugged in · battery full")
+        // Subtitle is now empty: the battery-full explanation lives in the
+        // charging banner instead, so the two don't repeat each other.
+        #expect(summary.subtitle.isEmpty)
+    }
+
+    @Test("Battery full overrides the 'Charging only' state")
+    func batteryFullOverridesChargingOnly() {
+        // No PD source, USB2 only: the "Charging only" branch.
+        let port = makePort(connected: true, active: [], supported: ["USB2"])
+        let summary = PortSummary(port: port, batteryFullyCharged: true)
+        #expect(summary.status == .batteryFull)
+        #expect(summary.headline == "Plugged in · battery full")
+    }
+
+    @Test("Battery not full still shows charging wattage")
+    func batteryNotFullStillShowsCharging() {
+        // Regression guard: false / nil must not trigger the battery-full path.
+        let port = makePort(connected: true, active: [], supported: ["USB2"])
+        let chargingFalse = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 96, winningW: 60)],
+            batteryFullyCharged: false
+        )
+        #expect(chargingFalse.status == .charging)
+        #expect(chargingFalse.headline == "Charging · 96W charger")
+
+        let chargingNil = PortSummary(port: port, sources: [usbPD(maxW: 96, winningW: 60)])
+        #expect(chargingNil.status == .charging)
+        #expect(chargingNil.headline == "Charging · 96W charger")
+    }
+
+    @Test("Battery full does not relabel a data connection")
+    func batteryFullDoesNotRelabelData() {
+        // A USB3 data device with the battery full is still a data device;
+        // the override only applies to the pure-power headlines.
+        let port = makePort(active: ["USB3"], supported: ["USB2", "USB3"], superSpeed: true)
+        let summary = PortSummary(port: port, batteryFullyCharged: true)
+        #expect(summary.status == .dataDevice)
+        #expect(summary.headline.hasPrefix("USB device"), "got: \(summary.headline)")
     }
 
     // MARK: - USB
 
-    func testUSB2OnlyIsSlowDevice() {
+    @Test("USB2 only is slow device")
+    func usb2OnlyIsSlowDevice() {
         let port = makePort(active: ["USB2"], supported: ["USB2"])
         let summary = PortSummary(port: port)
-        XCTAssertEqual(summary.status, .dataDevice)
-        XCTAssertTrue(
+        #expect(summary.status == .dataDevice)
+        #expect(
             summary.headline.hasPrefix("Slow USB device or charge-only cable"),
             "got: \(summary.headline)"
         )
     }
 
-    func testUSB3IsUSBDevice() {
+    @Test("USB3 is USB device")
+    func usb3IsUSBDevice() {
         let port = makePort(active: ["USB3"], supported: ["USB2", "USB3"], superSpeed: true)
         let summary = PortSummary(port: port)
-        XCTAssertEqual(summary.status, .dataDevice)
-        XCTAssertTrue(summary.headline.hasPrefix("USB device"), "got: \(summary.headline)")
+        #expect(summary.status == .dataDevice)
+        #expect(summary.headline.hasPrefix("USB device"), "got: \(summary.headline)")
     }
 
     // MARK: - Thunderbolt and Display
 
-    func testThunderboltLink() {
+    @Test("Thunderbolt link")
+    func thunderboltLink() {
         let port = makePort(active: ["CIO", "USB3"], supported: ["CIO", "USB3"])
         let summary = PortSummary(port: port, sources: [usbPD(maxW: 96, winningW: 60)])
-        XCTAssertEqual(summary.status, .thunderboltCable)
-        XCTAssertEqual(summary.headline, "Thunderbolt / USB4 · 96W charger")
+        #expect(summary.status == .thunderboltCable)
+        #expect(summary.headline == "Thunderbolt / USB4 · 96W charger")
     }
 
-    func testUSBCWithVideo() {
+    @Test("USB-C with video")
+    func usbCWithVideo() {
         let port = makePort(active: ["USB3", "DisplayPort"], superSpeed: true)
         let summary = PortSummary(port: port)
-        XCTAssertEqual(summary.status, .displayCable)
-        XCTAssertEqual(summary.headline, "USB-C with video")
+        #expect(summary.status == .displayCable)
+        #expect(summary.headline == "USB-C with video")
     }
 
-    func testDisplayOnly() {
+    @Test("Display only")
+    func displayOnly() {
         let port = makePort(active: ["DisplayPort"])
         let summary = PortSummary(port: port)
-        XCTAssertEqual(summary.status, .displayCable)
-        XCTAssertEqual(summary.headline, "Display connected")
+        #expect(summary.status == .displayCable)
+        #expect(summary.headline == "Display connected")
     }
 
     // MARK: - Bullets
 
-    func testEmarkerCableProducesEmarkerBullet() {
+    @Test("E-marker cable produces e-marker bullet")
+    func emarkerCableProducesEmarkerBullet() {
         let port = makePort(active: ["USB3"], superSpeed: true)
-        let cable = PDIdentity(
+        let cable = USBPDSOP(
             id: 99, endpoint: .sopPrime,
             parentPortType: 0, parentPortNumber: 0,
             vendorID: 0, productID: 0, bcdDevice: 0,
             vdos: [], specRevision: 0
         )
         let summary = PortSummary(port: port, identities: [cable])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("e-marker") && $0.contains("advertises") }),
             "expected an e-marker bullet, got bullets: \(summary.bullets)"
         )
     }
 
-    func testNoEmarkerCableProducesNoEmarkerBullet() {
+    @Test("No e-marker cable produces no e-marker bullet")
+    func noEmarkerCableProducesNoEmarkerBullet() {
         // PD-capable port (CC present) with no SOP'/SOP'' identity. The
-        // wording deliberately doesn't claim "basic cable" — macOS may
+        // wording deliberately doesn't claim "basic cable" - macOS may
         // simply not have run Discover Identity SOP' yet (typically only
         // happens when the link needs to negotiate above 3A).
         let port = makePort(active: ["USB2"], supported: ["CC", "USB2"], emarker: false)
         let summary = PortSummary(port: port)
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("No e-marker detected") }),
             "expected a no-e-marker bullet, got: \(summary.bullets)"
         )
     }
 
-    func testNoPDPortDoesNotClaimBasicCable() {
+    @Test("No PD port does not claim basic cable")
+    func noPDPortDoesNotClaimBasicCable() {
         // USB-only port (no CC = no PD = no SOP' query possible). Don't blame
         // the cable for a missing e-marker the OS could never have read. This
         // is the M4 Mac Mini front-port case from issue #50.
         let port = makePort(active: ["USB3"], supported: ["USB2", "USB3"], superSpeed: true)
         let summary = PortSummary(port: port)
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("No e-marker detected") }),
+        #expect(
+            summary.bullets.contains(where: { $0.contains("No e-marker detected") }) == false,
             "no-PD port should not claim a missing e-marker, got: \(summary.bullets)"
         )
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("can't read cable details") }),
             "expected the 'port can't read cable details' bullet, got: \(summary.bullets)"
         )
     }
 
-    func testMagSafePortDoesNotClaimNoPowerDelivery() {
+    @Test("MagSafe port does not claim no power delivery")
+    func magSafePortDoesNotClaimNoPowerDelivery() {
         // Regression: a charging MagSafe port reports an empty
         // TransportsSupported (MagSafe negotiates PD over its own pins,
         // not the CC line). The previous logic tripped the "no Power
@@ -226,21 +293,22 @@ final class PortSummaryTests: XCTestCase {
             port: magSafePort,
             sources: [usbPD(maxW: 100, winningW: 100)]
         )
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("no Power Delivery") }),
+        #expect(
+            summary.bullets.contains(where: { $0.contains("no Power Delivery") }) == false,
             "MagSafe must not claim 'no Power Delivery', got: \(summary.bullets)"
         )
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("can't read cable details") }),
+        #expect(
+            summary.bullets.contains(where: { $0.contains("can't read cable details") }) == false,
             "MagSafe must not show the 'can't read cable details' bullet, got: \(summary.bullets)"
         )
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("No e-marker detected") }),
+        #expect(
+            summary.bullets.contains(where: { $0.contains("No e-marker detected") }) == false,
             "MagSafe must not show the missing-e-marker bullet, got: \(summary.bullets)"
         )
     }
 
-    func testPDPortWithEmarkerStillShowsEmarker() {
+    @Test("PD port with e-marker still shows e-marker")
+    func pdPortWithEmarkerStillShowsEmarker() {
         // Sanity: presence of an e-marker means PD must have fired, regardless
         // of whether the test fixture happens to set CC explicitly. We don't
         // want the new gate to suppress legitimate e-marker bullets.
@@ -249,23 +317,24 @@ final class PortSummaryTests: XCTestCase {
             supported: ["CC", "USB2", "USB3"],
             superSpeed: true
         )
-        let cable = PDIdentity(
+        let cable = USBPDSOP(
             id: 99, endpoint: .sopPrime,
             parentPortType: 0, parentPortNumber: 0,
             vendorID: 0, productID: 0, bcdDevice: 0,
             vdos: [], specRevision: 0
         )
         let summary = PortSummary(port: port, identities: [cable])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("e-marker") && $0.contains("advertises") }),
             "expected e-marker bullet on PD-capable port, got: \(summary.bullets)"
         )
     }
 
-    func testNegotiatedPDOAppearsInBullets() {
+    @Test("Negotiated PDO appears in bullets")
+    func negotiatedPDOAppearsInBullets() {
         let port = makePort(active: ["USB3"], superSpeed: true)
         let summary = PortSummary(port: port, sources: [usbPD(maxW: 96, winningW: 60)])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("Currently negotiated") }),
             "expected a negotiated PDO bullet, got: \(summary.bullets)"
         )
@@ -276,9 +345,9 @@ final class PortSummaryTests: XCTestCase {
     /// Helper: build an SOP' cable identity with the given current bits.
     /// Uses USB4 Gen 3 (3) as the speed baseline and a valid latency.
     /// `currentBits = 1` => 3A (60W); `currentBits = 2` => 5A (100W).
-    private func cableIdentity(currentBits: Int) -> PDIdentity {
+    private func cableIdentity(currentBits: Int) -> USBPDSOP {
         let vdo: UInt32 = UInt32(0b011) | UInt32(currentBits << 5) | UInt32(1 << 13)
-        return PDIdentity(
+        return USBPDSOP(
             id: 99, endpoint: .sopPrime,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0, bcdDevice: 0,
@@ -287,7 +356,8 @@ final class PortSummaryTests: XCTestCase {
         )
     }
 
-    func testCableLimitSuffixAppearsWhenCableUnderAdvertised() {
+    @Test("Cable limit suffix appears when cable under-advertised")
+    func cableLimitSuffixAppearsWhenCableUnderAdvertised() {
         // Charger says 96W; cable rated 60W (3A * 20V).
         let port = makePort(active: ["USB3"], superSpeed: true)
         let summary = PortSummary(
@@ -295,10 +365,11 @@ final class PortSummaryTests: XCTestCase {
             sources: [usbPD(maxW: 96, winningW: 60)],
             identities: [cableIdentity(currentBits: 1)]
         )
-        XCTAssertEqual(summary.headline, "USB device · 96W charger · 60W cable")
+        #expect(summary.headline == "USB device · 96W charger · 60W cable")
     }
 
-    func testCableLimitSuffixAbsentWhenCableMatchesCharger() {
+    @Test("Cable limit suffix absent when cable matches charger")
+    func cableLimitSuffixAbsentWhenCableMatchesCharger() {
         // Charger 96W, cable 100W (5A * 20V): cable can carry full power.
         let port = makePort(active: ["CIO"], superSpeed: true)
         let summary = PortSummary(
@@ -306,24 +377,27 @@ final class PortSummaryTests: XCTestCase {
             sources: [usbPD(maxW: 96, winningW: 60)],
             identities: [cableIdentity(currentBits: 2)]
         )
-        XCTAssertEqual(summary.headline, "Thunderbolt / USB4 · 96W charger")
+        #expect(summary.headline == "Thunderbolt / USB4 · 96W charger")
     }
 
-    func testCableLimitSuffixAbsentWhenNoCharger() {
+    @Test("Cable limit suffix absent when no charger")
+    func cableLimitSuffixAbsentWhenNoCharger() {
         // No charger: nothing to compare against, so no cable suffix.
         let port = makePort(active: ["USB3"], superSpeed: true)
         let summary = PortSummary(port: port, identities: [cableIdentity(currentBits: 1)])
-        XCTAssertEqual(summary.headline, "USB device")
+        #expect(summary.headline == "USB device")
     }
 
-    func testCableLimitSuffixAbsentWhenNoCable() {
+    @Test("Cable limit suffix absent when no cable")
+    func cableLimitSuffixAbsentWhenNoCable() {
         // No e-marker: no cable wattage to surface.
         let port = makePort(active: ["USB3"], superSpeed: true)
         let summary = PortSummary(port: port, sources: [usbPD(maxW: 96, winningW: 60)])
-        XCTAssertEqual(summary.headline, "USB device · 96W charger")
+        #expect(summary.headline == "USB device · 96W charger")
     }
 
-    func testCableLimitSuffixOnChargingOnlyHeadline() {
+    @Test("Cable limit suffix on charging only headline")
+    func cableLimitSuffixOnChargingOnlyHeadline() {
         // The charging-only state path also gets the suffix when relevant.
         let port = makePort(connected: true, active: [], supported: ["USB2"])
         let summary = PortSummary(
@@ -331,7 +405,7 @@ final class PortSummaryTests: XCTestCase {
             sources: [usbPD(maxW: 96, winningW: 60)],
             identities: [cableIdentity(currentBits: 1)]
         )
-        XCTAssertEqual(summary.headline, "Charging · 96W charger · 60W cable")
+        #expect(summary.headline == "Charging · 96W charger · 60W cable")
     }
 
     // MARK: - Bullet ordering / grouping
@@ -341,9 +415,10 @@ final class PortSummaryTests: XCTestCase {
     /// cable-specific lines, and cable-specific lines come before the
     /// charger-power numbers. Refactors that move bullets between these
     /// blocks should fail this test.
-    func testBulletsAreGroupedLinkThenCableThenPower() {
+    @Test("Bullets are grouped link then cable then power")
+    func bulletsAreGroupedLinkThenCableThenPower() {
         let port = makePort(active: ["USB3"], superSpeed: true)
-        let cable = PDIdentity(
+        let cable = USBPDSOP(
             id: 99, endpoint: .sopPrime,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0, bcdDevice: 0,
@@ -355,7 +430,7 @@ final class PortSummaryTests: XCTestCase {
             ],
             specRevision: 3
         )
-        let partner = PDIdentity(
+        let partner = USBPDSOP(
             id: 100, endpoint: .sop,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0, bcdDevice: 0,
@@ -379,28 +454,29 @@ final class PortSummaryTests: XCTestCase {
         let chargerIdx = index { $0.contains("Charger advertises") }
         let negotiatedIdx = index { $0.contains("Currently negotiated") }
 
-        XCTAssertNotNil(speedIdx)
-        XCTAssertNotNil(deviceIdx)
-        XCTAssertNotNil(cableSpeedIdx)
-        XCTAssertNotNil(cableMakerIdx)
-        XCTAssertNotNil(chargerIdx)
-        XCTAssertNotNil(negotiatedIdx)
+        #expect(speedIdx != nil)
+        #expect(deviceIdx != nil)
+        #expect(cableSpeedIdx != nil)
+        #expect(cableMakerIdx != nil)
+        #expect(chargerIdx != nil)
+        #expect(negotiatedIdx != nil)
 
         // A: link + connected device come first
-        XCTAssertLessThan(speedIdx!, deviceIdx!, "Speed should come before connected device")
-        XCTAssertLessThan(deviceIdx!, cableSpeedIdx!, "Connected device should come before cable details")
+        #expect(speedIdx! < deviceIdx!, "Speed should come before connected device")
+        #expect(deviceIdx! < cableSpeedIdx!, "Connected device should come before cable details")
 
         // B: cable details (speed -> maker) come before power numbers
-        XCTAssertLessThan(cableSpeedIdx!, cableMakerIdx!, "Cable speed should come before cable maker")
-        XCTAssertLessThan(cableMakerIdx!, chargerIdx!, "Cable maker should come before charger numbers")
+        #expect(cableSpeedIdx! < cableMakerIdx!, "Cable speed should come before cable maker")
+        #expect(cableMakerIdx! < chargerIdx!, "Cable maker should come before charger numbers")
 
         // C: power negotiation tail
-        XCTAssertLessThan(chargerIdx!, negotiatedIdx!, "Charger max should come before currently negotiated")
+        #expect(chargerIdx! < negotiatedIdx!, "Charger max should come before currently negotiated")
     }
 
     // MARK: - DisplayPort lane config
 
-    func testDPBulletIncludesLaneCountWhenPinAssignmentPresent() {
+    @Test("DP bullet includes lane count when pin assignment present")
+    func dpBulletIncludesLaneCountWhenPinAssignmentPresent() {
         let port = USBCPort(
             id: 1, serviceName: "Port-USB-C@1", className: "AppleHPMInterfaceType10",
             portDescription: "Port-USB-C@1", portTypeDescription: "USB-C",
@@ -417,11 +493,12 @@ final class PortSummaryTests: XCTestCase {
         )
         let summary = PortSummary(port: port)
         let dpBullet = summary.bullets.first { $0.contains("DisplayPort") }
-        XCTAssertNotNil(dpBullet)
-        XCTAssertTrue(dpBullet!.contains("4 DP lanes"), "Expected 4-lane info, got: \(dpBullet!)")
+        #expect(dpBullet != nil)
+        #expect(dpBullet!.contains("4 DP lanes"), "Expected 4-lane info, got: \(dpBullet!)")
     }
 
-    func testDPBulletShowsTwoLaneForAssignmentD() {
+    @Test("DP bullet shows two lane for assignment D")
+    func dpBulletShowsTwoLaneForAssignmentD() {
         let port = USBCPort(
             id: 1, serviceName: "Port-USB-C@1", className: "AppleHPMInterfaceType10",
             portDescription: "Port-USB-C@1", portTypeDescription: "USB-C",
@@ -438,22 +515,24 @@ final class PortSummaryTests: XCTestCase {
         )
         let summary = PortSummary(port: port)
         let dpBullet = summary.bullets.first { $0.contains("DisplayPort") }
-        XCTAssertNotNil(dpBullet)
-        XCTAssertTrue(dpBullet!.contains("2 DP lanes"), "Expected 2-lane info, got: \(dpBullet!)")
+        #expect(dpBullet != nil)
+        #expect(dpBullet!.contains("2 DP lanes"), "Expected 2-lane info, got: \(dpBullet!)")
     }
 
-    func testDPBulletFallsBackWhenNoPinAssignment() {
+    @Test("DP bullet falls back when no pin assignment")
+    func dpBulletFallsBackWhenNoPinAssignment() {
         let port = makePort(active: ["DisplayPort"])
         let summary = PortSummary(port: port)
         let dpBullet = summary.bullets.first { $0.contains("DisplayPort") }
-        XCTAssertEqual(dpBullet, "Carrying DisplayPort video")
+        #expect(dpBullet == "Carrying DisplayPort video")
     }
 
     // MARK: - Partner PD revision
 
-    func testPartnerBulletIncludesPDRevision() {
+    @Test("Partner bullet includes PD revision")
+    func partnerBulletIncludesPDRevision() {
         let port = makePort(active: ["USB3"], supported: ["CC"], superSpeed: true)
-        let partner = PDIdentity(
+        let partner = USBPDSOP(
             id: 50, endpoint: .sop,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0x1234, bcdDevice: 0,
@@ -461,13 +540,14 @@ final class PortSummaryTests: XCTestCase {
         )
         let summary = PortSummary(port: port, identities: [partner])
         let deviceBullet = summary.bullets.first { $0.contains("Connected device") }
-        XCTAssertNotNil(deviceBullet)
-        XCTAssertTrue(deviceBullet!.contains("PD 3.1"), "Expected PD revision, got: \(deviceBullet!)")
+        #expect(deviceBullet != nil)
+        #expect(deviceBullet!.contains("PD 3.1"), "Expected PD revision, got: \(deviceBullet!)")
     }
 
-    func testPartnerBulletOmitsPDRevisionWhenZero() {
+    @Test("Partner bullet omits PD revision when zero")
+    func partnerBulletOmitsPDRevisionWhenZero() {
         let port = makePort(active: ["USB3"], supported: ["CC"], superSpeed: true)
-        let partner = PDIdentity(
+        let partner = USBPDSOP(
             id: 50, endpoint: .sop,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0x1234, bcdDevice: 0,
@@ -475,33 +555,35 @@ final class PortSummaryTests: XCTestCase {
         )
         let summary = PortSummary(port: port, identities: [partner])
         let deviceBullet = summary.bullets.first { $0.contains("Connected device") }
-        XCTAssertNotNil(deviceBullet)
-        XCTAssertFalse(deviceBullet!.contains("PD"), "Should not show PD revision when unknown")
+        #expect(deviceBullet != nil)
+        #expect(deviceBullet!.contains("PD") == false, "Should not show PD revision when unknown")
     }
 
     // MARK: - Unknown state enrichment
 
-    func testUnknownWithSOPPartnerShowsEmarkerBullet() {
+    @Test("Unknown with SOP partner shows e-marker bullet")
+    func unknownWithSOPPartnerShowsEmarkerBullet() {
         // Connected, PD-capable, no transports active, no charger,
         // but a partner SOP identity exists. The e-marker explanation
         // bullet should appear because we know something is on the
         // other end.
         let port = makePort(connected: true, active: [], supported: ["CC"])
-        let partner = PDIdentity(
+        let partner = USBPDSOP(
             id: 50, endpoint: .sop,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0x1234, bcdDevice: 0,
             vdos: [0x6C00_05AC], specRevision: 3
         )
         let summary = PortSummary(port: port, identities: [partner])
-        XCTAssertEqual(summary.status, .unknown)
-        XCTAssertTrue(
+        #expect(summary.status == .unknown)
+        #expect(
             summary.bullets.contains(where: { $0.contains("No e-marker detected") }),
             "Expected e-marker explanation bullet in .unknown with SOP partner, got: \(summary.bullets)"
         )
     }
 
-    func testUnknownWithChargerHitsChargingNotUnknown() {
+    @Test("Unknown with charger hits charging not unknown")
+    func unknownWithChargerHitsChargingNotUnknown() {
         // A charger on the port should hit .charging, not .unknown,
         // even when no transports are active. Pin this so a future
         // refactor doesn't accidentally drop charger-only connections
@@ -509,66 +591,71 @@ final class PortSummaryTests: XCTestCase {
         let port = makePort(connected: true, active: [], supported: ["CC"])
         let source = usbPD(maxW: 20, winningW: 20)
         let summary = PortSummary(port: port, sources: [source])
-        XCTAssertEqual(summary.status, .charging,
+        #expect(summary.status == .charging,
             "Charger present with no active transports should be .charging, not .unknown")
     }
 
-    func testPureUnknownHasNoBullets() {
+    @Test("Pure unknown has no bullets")
+    func pureUnknownHasNoBullets() {
         // Connected but truly zero data: no transports, no charger,
         // no identities, no USB2 in supported. Should be .unknown
         // with empty bullets (no false "basic cable" claim).
         let port = makePort(connected: true, active: [], supported: [])
         let summary = PortSummary(port: port)
-        XCTAssertEqual(summary.status, .unknown)
-        XCTAssertTrue(summary.bullets.isEmpty,
+        #expect(summary.status == .unknown)
+        #expect(summary.bullets.isEmpty,
             "Pure .unknown with no data should have empty bullets, got: \(summary.bullets)")
     }
 
     // MARK: - USB3 Transport integration
 
-    func testUSB3Gen1ShowsPreciseSpeed() {
+    @Test("USB3 Gen 1 shows precise speed")
+    func usb3Gen1ShowsPreciseSpeed() {
         let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
         let transport = USB3Transport(
             id: 100, portKey: "2/1", signaling: 1,
             signalingDescription: "Gen 1", dataRole: "host"
         )
         let summary = PortSummary(port: port, usb3Transports: [transport])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 1 (5 Gbps)") }),
             "Gen 1 transport should produce precise label, got: \(summary.bullets)"
         )
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("SuperSpeed USB") }),
+        #expect(
+            summary.bullets.contains(where: { $0.contains("SuperSpeed USB") }) == false,
             "Generic SuperSpeed label should not appear when precise data is available"
         )
     }
 
-    func testUSB3Gen2ShowsPreciseSpeed() {
+    @Test("USB3 Gen 2 shows precise speed")
+    func usb3Gen2ShowsPreciseSpeed() {
         let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
         let transport = USB3Transport(
             id: 101, portKey: "2/1", signaling: 2,
             signalingDescription: "Gen 2", dataRole: "host"
         )
         let summary = PortSummary(port: port, usb3Transports: [transport])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 2 (10 Gbps)") }),
             "Gen 2 transport should produce precise label, got: \(summary.bullets)"
         )
     }
 
-    func testUSB3FallbackWhenNoTransportData() {
+    @Test("USB3 fallback when no transport data")
+    func usb3FallbackWhenNoTransportData() {
         // When the USB3 transport service hasn't appeared yet (no device
         // connected or watcher hasn't caught up), fall back to the
         // generic "SuperSpeed USB" label.
         let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
         let summary = PortSummary(port: port, usb3Transports: [])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("SuperSpeed USB") }),
             "Should fall back to generic label without transport data, got: \(summary.bullets)"
         )
     }
 
-    func testUSB3FallbackWhenSignalingNil() {
+    @Test("USB3 fallback when signaling nil")
+    func usb3FallbackWhenSignalingNil() {
         // Transport exists but signaling field is nil (IOKit property absent).
         let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
         let transport = USB3Transport(
@@ -576,13 +663,14 @@ final class PortSummaryTests: XCTestCase {
             signalingDescription: nil, dataRole: nil
         )
         let summary = PortSummary(port: port, usb3Transports: [transport])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("SuperSpeed USB") }),
             "Should fall back to generic label when signaling is nil, got: \(summary.bullets)"
         )
     }
 
-    func testUSB3UnknownSignalingShowsGenericGen() {
+    @Test("USB3 unknown signaling shows generic gen")
+    func usb3UnknownSignalingShowsGenericGen() {
         // A signaling value we haven't seen before should still produce
         // a reasonable label rather than crashing or falling back to
         // the generic "SuperSpeed USB" text.
@@ -592,13 +680,14 @@ final class PortSummaryTests: XCTestCase {
             signalingDescription: "Gen 3", dataRole: "host"
         )
         let summary = PortSummary(port: port, usb3Transports: [transport])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 3") }),
             "Unknown gen should still produce a label, got: \(summary.bullets)"
         )
     }
 
-    func testThunderboltActiveIgnoresUSB3TransportData() {
+    @Test("Thunderbolt active ignores USB3 transport data")
+    func thunderboltActiveIgnoresUSB3TransportData() {
         // When Thunderbolt (CIO) is active, the USB3 bullet should not
         // appear at all. The TB label takes priority. USB3 transport
         // data should have no effect.
@@ -612,18 +701,19 @@ final class PortSummaryTests: XCTestCase {
             sources: [usbPD(maxW: 96, winningW: 60)],
             usb3Transports: [transport]
         )
-        XCTAssertEqual(summary.status, .thunderboltCable)
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("USB 3.2") }),
+        #expect(summary.status == .thunderboltCable)
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2") }) == false,
             "USB3 transport label should not appear when Thunderbolt is active, got: \(summary.bullets)"
         )
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("Thunderbolt") || $0.contains("USB4") }),
             "Thunderbolt bullet should be present, got: \(summary.bullets)"
         )
     }
 
-    func testUSB3TransportAloneDoesNotActivateUSB3Bullet() {
+    @Test("USB3 transport alone does not activate USB3 bullet")
+    func usb3TransportAloneDoesNotActivateUSB3Bullet() {
         // The port controller's transportsActive is the authority for
         // whether USB3 is active. Transport watcher data is supplementary
         // (refines the speed label). If transportsActive doesn't include
@@ -637,13 +727,14 @@ final class PortSummaryTests: XCTestCase {
             signalingDescription: "Gen 2", dataRole: "host"
         )
         let summary = PortSummary(port: port, usb3Transports: [transport])
-        XCTAssertFalse(
-            summary.bullets.contains(where: { $0.contains("USB 3.2") || $0.contains("SuperSpeed") }),
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2") || $0.contains("SuperSpeed") }) == false,
             "USB3 bullet should not appear when transportsActive has no USB3, got: \(summary.bullets)"
         )
     }
 
-    func testUSB3TransportWrongPortKeyIgnored() {
+    @Test("USB3 transport wrong port key ignored")
+    func usb3TransportWrongPortKeyIgnored() {
         // Transport data for a different port should not affect this port.
         let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
         let transport = USB3Transport(
@@ -651,9 +742,157 @@ final class PortSummaryTests: XCTestCase {
             signalingDescription: "Gen 2", dataRole: "host"
         )
         let summary = PortSummary(port: port, usb3Transports: [transport])
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("SuperSpeed USB") }),
             "Transport for wrong port should be ignored, got: \(summary.bullets)"
+        )
+    }
+
+    // MARK: - USB device speed preferred over HPM transport
+
+    @Test("USB3 device speed preferred over transport")
+    func usb3DeviceSpeedPreferredOverTransport() {
+        // Issue #140: IOUSBHostDevice reports Gen 2 (10 Gbps) but HPM
+        // SuperSpeedSignaling reports Gen 1 (5 Gbps). The device speed
+        // should win because it comes from the host controller negotiation.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
+        let transport = USB3Transport(
+            id: 200, portKey: "2/1", signaling: 1,
+            signalingDescription: "Gen 1", dataRole: "host"
+        )
+        let device = USBDevice(
+            id: 300, locationID: 0x0120_0000,
+            vendorID: 0x04E8, productID: 0x4001,
+            vendorName: "Samsung", productName: "PSSD T7",
+            serialNumber: nil, usbVersion: "3.2",
+            speedRaw: 4, busPowerMA: 900, currentMA: 896,
+            controllerPortName: "Port-USB-C@1",
+            rawProperties: [:]
+        )
+        let summary = PortSummary(
+            port: port, devices: [device], usb3Transports: [transport]
+        )
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 2 (10 Gbps)") }),
+            "Device speed (Gen 2) should win over HPM transport (Gen 1), got: \(summary.bullets)"
+        )
+        #expect(
+            summary.bullets.contains(where: { $0.contains("5 Gbps") }) == false,
+            "Gen 1 label should not appear when device reports Gen 2, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("USB3 falls back to transport when no device")
+    func usb3FallsBackToTransportWhenNoDevice() {
+        // When no USB device is matched, the transport label should
+        // still be used (existing behaviour).
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
+        let transport = USB3Transport(
+            id: 201, portKey: "2/1", signaling: 2,
+            signalingDescription: "Gen 2", dataRole: "host"
+        )
+        let summary = PortSummary(port: port, usb3Transports: [transport])
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 2 (10 Gbps)") }),
+            "Should fall back to transport label when no device matched, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("USB3 device speed ignores USB2 devices")
+    func usb3DeviceSpeedIgnoresUSB2Devices() {
+        // A USB 2.0 device (speedRaw=2) behind a hub should not produce
+        // a USB3 speed label. Only SuperSpeed and above count.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
+        let transport = USB3Transport(
+            id: 202, portKey: "2/1", signaling: 1,
+            signalingDescription: "Gen 1", dataRole: "host"
+        )
+        let usb2Device = USBDevice(
+            id: 301, locationID: 0x0120_0000,
+            vendorID: 0x1234, productID: 0x0001,
+            vendorName: "Test", productName: "USB2 Device",
+            serialNumber: nil, usbVersion: "2.0",
+            speedRaw: 2, busPowerMA: 500, currentMA: 100,
+            controllerPortName: "Port-USB-C@1",
+            rawProperties: [:]
+        )
+        let summary = PortSummary(
+            port: port, devices: [usb2Device], usb3Transports: [transport]
+        )
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 1 (5 Gbps)") }),
+            "USB 2.0 device speed should be ignored, transport label should win, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("USB3 hub with faster downstream device")
+    func usb3HubWithFasterDownstreamDevice() {
+        // A Gen 1 hub (5 Gbps upstream) with a Gen 2 device (10 Gbps)
+        // behind it. The bullet should reflect the upstream link (Gen 1),
+        // not the downstream device's faster negotiation with the hub.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
+        let transport = USB3Transport(
+            id: 203, portKey: "2/1", signaling: 1,
+            signalingDescription: "Gen 1", dataRole: "host"
+        )
+        // Hub is root device: locationID 0x0120_0000 (one path nibble)
+        let hub = USBDevice(
+            id: 400, locationID: 0x0120_0000,
+            vendorID: 0x2109, productID: 0x2822,
+            vendorName: "VIA Labs", productName: "USB3.0 Hub",
+            serialNumber: nil, usbVersion: "3.2",
+            speedRaw: 3, busPowerMA: 900, currentMA: 0,
+            controllerPortName: "Port-USB-C@1",
+            rawProperties: [:]
+        )
+        // Downstream device: locationID 0x0121_0000 (two path nibbles)
+        let downstream = USBDevice(
+            id: 401, locationID: 0x0121_0000,
+            vendorID: 0x04E8, productID: 0x4001,
+            vendorName: "Samsung", productName: "PSSD T7",
+            serialNumber: nil, usbVersion: "3.2",
+            speedRaw: 4, busPowerMA: 900, currentMA: 896,
+            controllerPortName: "Port-USB-C@1",
+            rawProperties: [:]
+        )
+        let summary = PortSummary(
+            port: port, devices: [hub, downstream], usb3Transports: [transport]
+        )
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 1 (5 Gbps)") }),
+            "Hub upstream speed (Gen 1) should be used, not downstream device (Gen 2), got: \(summary.bullets)"
+        )
+        #expect(
+            summary.bullets.contains(where: { $0.contains("10 Gbps") }) == false,
+            "Downstream Gen 2 speed should not appear, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("USB3 falls back to transport when no root device")
+    func usb3FallsBackToTransportWhenNoRootDevice() {
+        // If only downstream (non-root) devices are matched and none are
+        // root devices, fall back to the HPM transport label.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC", "USB3"])
+        let transport = USB3Transport(
+            id: 204, portKey: "2/1", signaling: 1,
+            signalingDescription: "Gen 1", dataRole: "host"
+        )
+        // Only a downstream device (two path nibbles), no root
+        let downstream = USBDevice(
+            id: 402, locationID: 0x0121_0000,
+            vendorID: 0x04E8, productID: 0x4001,
+            vendorName: "Samsung", productName: "PSSD T7",
+            serialNumber: nil, usbVersion: "3.2",
+            speedRaw: 4, busPowerMA: 900, currentMA: 896,
+            controllerPortName: "Port-USB-C@1",
+            rawProperties: [:]
+        )
+        let summary = PortSummary(
+            port: port, devices: [downstream], usb3Transports: [transport]
+        )
+        #expect(
+            summary.bullets.contains(where: { $0.contains("USB 3.2 Gen 1 (5 Gbps)") }),
+            "Should fall back to HPM transport when no root device, got: \(summary.bullets)"
         )
     }
 
@@ -662,9 +901,10 @@ final class PortSummaryTests: XCTestCase {
     /// Issue #131: Apple Thunderbolt 5 data cable (A3189) on M4 MBA.
     /// Reporter expected "Thunderbolt 5" label but saw "Thunderbolt / USB4".
     /// Pins the exact output so we can verify any future labelling changes.
-    func testIssue131AppleTB5CableOnCIOPort() {
+    @Test("Issue #131: Apple TB5 cable on CIO port")
+    func issue131AppleTB5CableOnCIOPort() {
         let vdos: [UInt32] = [0x1C60_05AC, 0x0000_0000, 0x720A_0100, 0x110A_2644]
-        let cable = PDIdentity(
+        let cable = USBPDSOP(
             id: 99, endpoint: .sopPrime,
             parentPortType: 2, parentPortNumber: 1,
             vendorID: 0x05AC, productID: 0x720A, bcdDevice: 0x0100,
@@ -673,12 +913,12 @@ final class PortSummaryTests: XCTestCase {
 
         // Verify the cable VDO decodes to Gen 4 / 80 Gbps / 250W passive.
         let cv = cable.cableVDO!
-        XCTAssertEqual(cv.speed, .usb4Gen4)
-        XCTAssertEqual(cv.current, .fiveAmp)
-        XCTAssertEqual(cv.maxVolts, 50)
-        XCTAssertEqual(cv.maxWatts, 250)
-        XCTAssertEqual(cv.cableType, .passive)
-        XCTAssertTrue(cv.decodeWarnings.isEmpty)
+        #expect(cv.speed == .usb4Gen4)
+        #expect(cv.current == .fiveAmp)
+        #expect(cv.maxVolts == 50)
+        #expect(cv.maxWatts == 250)
+        #expect(cv.cableType == .passive)
+        #expect(cv.decodeWarnings.isEmpty)
 
         // CIO active (Thunderbolt link up on the port).
         let port = makePort(
@@ -688,19 +928,238 @@ final class PortSummaryTests: XCTestCase {
         )
         let summary = PortSummary(port: port, identities: [cable])
 
-        XCTAssertEqual(summary.status, .thunderboltCable)
-        XCTAssertEqual(summary.headline, "Thunderbolt / USB4")
-        XCTAssertTrue(
+        #expect(summary.status == .thunderboltCable)
+        #expect(summary.headline == "Thunderbolt / USB4")
+        #expect(
             summary.bullets.contains(where: { $0.contains("USB4 Gen 4 (80 Gbps, Thunderbolt 5 class)") }),
             "Cable speed bullet should show Gen 4, got: \(summary.bullets)"
         )
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("Apple") }),
             "Cable maker bullet should show Apple, got: \(summary.bullets)"
         )
-        XCTAssertTrue(
+        #expect(
             summary.bullets.contains(where: { $0.contains("250W") }),
             "Cable power bullet should show 250W, got: \(summary.bullets)"
         )
+    }
+
+    // MARK: - Charger identification (AdapterDetails + FedDetails fallback)
+
+    private func adapter(
+        manufacturer: String? = nil,
+        name: String? = nil,
+        model: String? = nil,
+        watts: Int? = 100
+    ) -> AdapterInfo {
+        AdapterInfo(
+            watts: watts,
+            isCharging: nil,
+            source: "AC",
+            manufacturer: manufacturer,
+            name: name,
+            model: model
+        )
+    }
+
+    private func fed(portIndex: Int = 1, vid: Int) -> FederatedIdentity {
+        FederatedIdentity(
+            portIndex: portIndex,
+            vendorID: vid,
+            productID: 0,
+            pdSpecRevision: 0,
+            powerRole: 0,
+            dualRolePower: false,
+            externalConnected: true
+        )
+    }
+
+    @Test("Charger bullet shows manufacturer and name when AdapterDetails populated")
+    func chargerBulletShowsManufacturerAndName() {
+        // Apple 140W brick: AdapterDetails has both fields. Expect the
+        // richer "Charger: Apple Inc. 140W USB-C Power Adapter" line.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 140, winningW: 140)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        let bullet = summary.bullets.first { $0.starts(with: "Charger:") }
+        #expect(bullet == "Charger: Apple Inc. 140W USB-C Power Adapter")
+    }
+
+    @Test("Charger bullet shows manufacturer only when Name is missing")
+    func chargerBulletShowsManufacturerOnly() {
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 60, winningW: 60)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: nil)
+        )
+        let bullet = summary.bullets.first { $0.starts(with: "Charger:") }
+        #expect(bullet == "Charger: Apple Inc.")
+    }
+
+    @Test("FedDetails fallback emits Charger identified line when no AdapterDetails")
+    func fedDetailsFallbackEmitsCharger() {
+        // CUKTECH-style case: AdapterDetails is empty / not present, but
+        // FedDetails gives us the VID (11009 = Zimi). Expect the hedged
+        // "Charger identified as Zimi Corporation (0x2B01)" line.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 45, winningW: 45)],
+            federatedIdentities: [fed(portIndex: 1, vid: 11009)]
+        )
+        let bullet = summary.bullets.first { $0.contains("Charger identified as") }
+        #expect(bullet != nil, "Expected hedged 'Charger identified as' bullet, got: \(summary.bullets)")
+        #expect(bullet!.contains("Zimi") && bullet!.contains("0x2B01"),
+            "Expected Zimi Corporation (0x2B01), got: \(bullet ?? "<nil>")")
+    }
+
+    @Test("FedDetails fallback suppressed when AdapterDetails has richer identity")
+    func fedDetailsSuppressedWhenAdapterPresent() {
+        // Hypothetical: both AdapterDetails and FedDetails populated.
+        // The richer "Charger: <Manufacturer> <Name>" line should fire;
+        // the FedDetails-derived "Charger identified as" line should NOT
+        // also fire (avoids double-prefix repetition on the same line).
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 140, winningW: 140)],
+            federatedIdentities: [fed(portIndex: 1, vid: 0x05AC)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        let chargerLines = summary.bullets.filter { $0.starts(with: "Charger:") || $0.contains("Charger identified as") }
+        #expect(chargerLines.count == 1,
+            "Expected exactly one charger-identity line, got: \(chargerLines)")
+        #expect(chargerLines.first == "Charger: Apple Inc. 140W USB-C Power Adapter")
+    }
+
+    @Test("Apple brick on MagSafe: AdapterDetails catches the silent FedDetails failure")
+    func appleBrickOnMagSafeUsesAdapterDetails() {
+        // The Apple-brick-on-MagSafe silent-failure case: FedDetails
+        // returns FedVendorID = 0, but AdapterDetails has the rich
+        // identity. The primary path should catch it.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 96, winningW: 96)],
+            federatedIdentities: [fed(portIndex: 1, vid: 0)],  // silent failure
+            adapter: adapter(manufacturer: "Apple Inc.", name: "96W USB-C Power Adapter")
+        )
+        let bullet = summary.bullets.first { $0.starts(with: "Charger:") }
+        #expect(bullet == "Charger: Apple Inc. 96W USB-C Power Adapter")
+        #expect(
+            !summary.bullets.contains(where: { $0.contains("identified as") }),
+            "No 'identified as' bullet expected when FedVendorID is 0"
+        )
+    }
+
+    @Test("Unknown VendorDB lookup does not emit anything for FedDetails")
+    func unknownVendorIDNoBullet() {
+        // FedVendorID is non-zero but neither USB-IF nor the community
+        // usb.ids list knows it. The old code would emit "Connected
+        // device: 0xCAFE" (just the hex); the safe fallback drops the
+        // bullet rather than mislead. 0xCAFE is verified not in
+        // whatcable.db at the time of writing; if a real vendor takes
+        // it later, swap to another truly-unknown VID.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 65, winningW: 65)],
+            federatedIdentities: [fed(portIndex: 1, vid: 0xCAFE)]  // not in either DB
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.contains("Charger identified as") || $0.contains("Connected device") }),
+            "No identity bullet expected for unknown VID, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("FedDetails wording is 'Connected device' when no charging source on port")
+    func fedDetailsConnectedDeviceWhenNotCharging() {
+        // A port with a known FedDetails VID but NO charging source on
+        // the port (it's a peripheral, dock, drive). Keep the generic
+        // "Connected device" wording rather than relabel as Charger.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC"], superSpeed: true)
+        let summary = PortSummary(
+            port: port,
+            sources: [],  // no charging source
+            federatedIdentities: [fed(portIndex: 1, vid: 11009)]
+        )
+        let bullet = summary.bullets.first { $0.contains("Connected device") }
+        #expect(bullet != nil, "Expected 'Connected device' line for peripheral, got: \(summary.bullets)")
+    }
+
+    @Test("Adapter with nil manufacturer does not emit Charger bullet")
+    func adapterWithNilManufacturerNoBullet() {
+        // Adapter present but no identity fields (e.g. Mac Studio idle,
+        // where AdapterDetails is {"FamilyCode"=0}). No bullet.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 60, winningW: 60)],
+            adapter: adapter(manufacturer: nil, name: nil)
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.starts(with: "Charger:") }),
+            "No Charger: bullet expected for empty AdapterDetails, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("Adapter with empty-string manufacturer does not emit Charger bullet")
+    func adapterWithEmptyStringManufacturerNoBullet() {
+        // Defensive case: the trim helper in the reader should already
+        // map empty to nil, but if a caller hands us an empty string
+        // directly we still want to suppress the bullet rather than
+        // emit a trailing-whitespace "Charger: " line.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 60, winningW: 60)],
+            adapter: adapter(manufacturer: "", name: "Some Adapter")
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.starts(with: "Charger:") }),
+            "Empty manufacturer should suppress the Charger bullet, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("Charger bullet does not fire when no charging source on port")
+    func chargerBulletRequiresChargingSourceOnPort() {
+        // AdapterInfo is system-wide; it describes the brick that's
+        // sourcing power somewhere on the system. The "Charger:" bullet
+        // should only appear on the port that's actively charging, not
+        // on every port the user has connected.
+        let port = makePort(connected: true, active: ["USB3"], supported: ["CC"], superSpeed: true)
+        let summary = PortSummary(
+            port: port,
+            sources: [],  // no charging source on THIS port
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        #expect(
+            !summary.bullets.contains(where: { $0.starts(with: "Charger:") }),
+            "Charger: bullet should not appear on a non-charging port even when AdapterDetails is populated, got: \(summary.bullets)"
+        )
+    }
+
+    @Test("Charger identity bullet appears before the wattage advertisement")
+    func chargerIdentityBulletOrdering() {
+        // Bullet ordering: "Charger: Apple Inc. 140W USB-C Power Adapter"
+        // should appear immediately before "Charger advertises up to NW"
+        // so the identity reads as the headline of the charger block.
+        let port = makePort(connected: true, active: [], supported: ["CC"])
+        let summary = PortSummary(
+            port: port,
+            sources: [usbPD(maxW: 140, winningW: 140)],
+            adapter: adapter(manufacturer: "Apple Inc.", name: "140W USB-C Power Adapter")
+        )
+        let identityIdx = summary.bullets.firstIndex { $0.starts(with: "Charger:") }
+        let wattageIdx = summary.bullets.firstIndex { $0.contains("advertises up to") }
+        #expect(identityIdx != nil, "Identity bullet should appear")
+        #expect(wattageIdx != nil, "Wattage bullet should appear")
+        if let i = identityIdx, let w = wattageIdx {
+            #expect(i < w, "Identity (\(i)) should come before wattage (\(w)) in bullets: \(summary.bullets)")
+        }
     }
 }

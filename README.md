@@ -2,6 +2,8 @@
 
 > **What can this USB-C cable actually do?**
 
+**Website: [whatcable.uk](https://whatcable.uk)** (overview, screenshots, and CLI docs)
+
 A small macOS menu bar app that tells you, in plain English, what each USB-C cable plugged into your Mac can actually do, and **why your Mac might be charging slowly**.
 
 USB-C hides a lot under one connector. Anything from a USB 2.0 charge-only cable to a 240W / 40 Gbps Thunderbolt 4 cable, all looking identical in your drawer. macOS already exposes the relevant info via IOKit; WhatCable surfaces it as a friendly menu bar popover.
@@ -9,6 +11,7 @@ USB-C hides a lot under one connector. Anything from a USB 2.0 charge-only cable
 [![Latest release](https://img.shields.io/github/v/release/darrylmorley/whatcable)](https://github.com/darrylmorley/whatcable/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-blue)](https://github.com/darrylmorley/whatcable)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![WhatCable Pro](https://img.shields.io/badge/WhatCable%20Pro-%C2%A34.99-orange)](https://whatcable.uk/pro)
 
 ![WhatCable popover](docs/screenshot.webp)
 
@@ -21,6 +24,8 @@ Per port, in plain English:
   - *"Cable is limiting charging speed"* (cable rated below the charger)
   - *"Charging at 30W (charger can do up to 96W)"* (Mac is asking for less, e.g. battery near full)
   - *"Charging well at 96W"* (everything matches)
+  - *"Battery full, not charging"* (plugged in, battery full, so the Mac isn't drawing power)
+- **Data-speed diagnostic:** a plain-English verdict on what's limiting the link, the Mac port, the cable, or the device. For example *"Cable is limiting data speed"*, *"Device runs at 10 Gbps, this is the fastest it supports, not a cable problem"*, or *"Running slower than expected"* when the link came up degraded. Shown inline, in the CLI, and in JSON.
 - **Cable e-marker info:** the cable's actual speed (USB 2.0, 5 / 10 / 20 / 40 / 80 Gbps), current rating (3 A / 5 A up to 60W / 100W / 240W), and the chip's vendor
 - **Cable trust signals:** an orange card appears when the e-marker reports values that look unusual against the USB-PD spec, like a zero vendor ID, a reserved bit pattern in the speed / current / cable-latency fields, or a VID that isn't in USB-IF's published list. Wording is hedged on purpose: a flag means "this looks unusual," not "this cable is fake."
 - **Charger PDO list:** every voltage profile the charger advertises (5V / 9V / 12V / 15V / 20V…) with the currently negotiated profile highlighted in real time
@@ -40,12 +45,25 @@ Click the **gear icon** in the popover header to open Settings, where you can:
 - Adjust the font size
 - Switch language (English, Armenian, Italian, Polish, Simplified Chinese, or follow your system default)
 - Get notifications when cables are connected or disconnected
+- Contribute anonymised port and power diagnostics to improve hardware coverage (opt-in, manual)
 
 Right-click the menu bar icon for **Refresh**, a **Keep window open** toggle (handy for screenshots and demos), **Check for Updates…**, **About**, **WhatCable on GitHub**, and **Quit**.
 
 ## WhatCable Pro
 
-WhatCable is free and open source. If you find it useful, you can support the project by picking up [WhatCable Pro](https://whatcable.uk/pro), which unlocks a ton of extra features: live power metering, PD contract inspection, port health counters, pin diagrams, cable resistance estimation, liquid detection status, and a dedicated power monitor window. One-time purchase, works on up to 2 Macs.
+WhatCable is free and open source. If you find it useful, you can support the project by picking up [WhatCable Pro](https://whatcable.uk/pro), which unlocks extra features:
+
+- Live power metering and PD contract inspection
+- Power Monitor with a live system power-input graph
+- **Negotiation Diagnostics:** the full per-connection breakdown, what the Mac port, cable, and device each support vs what was negotiated, side by side with the weak link highlighted, plus an e-marker vs Thunderbolt-controller cross-check
+- Port health counters and cable resistance estimation
+- Pin diagrams and liquid detection status
+- Pro screens open inside the app, with an optional detach into their own window
+- Works even on Macs that don't expose live per-port metering
+
+One-time purchase, works on up to 2 Macs. See [whatcable.uk/pro](https://whatcable.uk/pro) for details.
+
+[![Buy WhatCable Pro](https://img.shields.io/badge/Buy%20WhatCable%20Pro-%C2%A34.99-orange?style=for-the-badge)](https://whatcable.uk/pro)
 
 ## Install
 
@@ -54,6 +72,8 @@ Visit [whatcable.uk](https://whatcable.uk) for an overview and screenshots, or i
 Download the latest `WhatCable.zip` from the [Releases page](https://github.com/darrylmorley/whatcable/releases/latest), unzip, and drag `WhatCable.app` to `/Applications`.
 
 The app is signed with a Developer ID and notarised by Apple, so there are no Gatekeeper warnings.
+
+It's not on the Mac App Store on purpose: App Sandbox blocks the low-level IOKit reads WhatCable depends on, so it ships signed and notarised outside the store instead.
 
 Requires macOS 14 (Sonoma) or later, Apple Silicon only. On Intel Macs, the USB-C ports are driven by Intel Titan Ridge / JHL9580 Thunderbolt 3 controllers, and the USB-PD state and cable e-marker data WhatCable depends on are not exposed through any public IOKit accessor.
 
@@ -72,12 +92,29 @@ This installs the menu bar app and symlinks the `whatcable` CLI into your PATH.
 
 A `whatcable` binary ships alongside the menu bar app, driven by the same diagnostic engine:
 
+```text
+$ whatcable
+
+USB-C Port 1
+  ✓ Charging well at 96W
+  Cable: 5A, 100W, USB4 40 Gbps
+  Charger: 5V / 9V / 15V / 20V PDOs
+
+USB-C Port 2
+  ! Cable is limiting charging speed
+  Cable: 3A, 60W, USB 2.0
+  Device: External SSD, USB 10 Gbps
+```
+
+Flags:
+
 ```bash
 whatcable                # human-readable summary of every port
 whatcable --json         # structured JSON, pipe into jq
 whatcable --watch        # stream updates as cables come and go (Ctrl+C to exit)
 whatcable --raw          # include underlying IOKit properties
 whatcable --report       # open a pre-filled GitHub issue for the connected cable
+whatcable --test-kit     # run diagnostic probes and submit anonymised data
 whatcable --version
 whatcable --help
 ```
@@ -101,16 +138,18 @@ WhatCable reads four families of IOKit services. No entitlements, no private API
 | `IOPortTransportComponentCCUSBPDSOP`, `...SOPp`, `...SOPpp` | PD Discover Identity VDOs from the port partner (SOP), the cable's near-end e-marker (SOP'), and the far-end e-marker (SOP'') if present |
 | XHCI controller subtree | Each connected USB device is paired to its physical port via the XHCI port node's `UsbIOPort` registry path, falling back to a bus-index derived from the controller's `locationID` upper byte and the port's `hpm` SPMI ancestor on machines that don't expose `UsbIOPort`. |
 
-Cable speed and power decoding follow the USB Power Delivery spec (aligned to USB-PD R3.2 V1.2, March 2026). Vendor names come from a bundled SQLite database (`whatcable.db`) that merges USB-IF's published vendor list (~13,700 entries), the community `usb.ids` list, and a curated set of cable fingerprints reported by users.
+Cable speed and power decoding follow the USB Power Delivery spec (aligned to USB-PD R3.2 V1.2, March 2026). Vendor names come from a bundled SQLite database (`whatcable.db`) that merges USB-IF's published vendor list, the community `usb.ids` list, and a curated set of cable fingerprints reported by users.
 
 ## Build from source
 
 ```bash
-swift run WhatCable          # menu bar app
-swift run whatcable-cli      # CLI
+swift build                  # compile everything
+swift run WhatCable          # run the menu bar app (dev mode, no widget or bundle structure)
+swift run whatcable-cli      # run the CLI
+swift test                   # run the test suite
 ```
 
-Requires Swift 5.9+ (Xcode 15+).
+Requires Swift 5.9+ (Xcode 15+). Note: `swift run WhatCable` launches a working dev build but without the widget extension or proper `.app` bundle. For a distributable build, use the build scripts below.
 
 ## Build a distributable .app
 
@@ -165,14 +204,11 @@ cp .env.example .env
 - **Some cables only reveal their e-marker once something is plugged in at the other end.** The chip in the cable's plug runs off VCONN (a small power rail your Mac feeds into the cable) and only answers when the host issues a "Discover Identity" message. With nothing attached, some Macs read the e-marker straight away, others wait until they see a real partner to negotiate with. If a cable shows up as basic when bare, plug a charger, dock, or device into the far end and check again.
 - **WhatCable trusts the e-marker for capabilities.** Cable speed, current rating, and vendor come straight from the chip in the cable's plug, and software cannot verify what's inside the jacket. If a cable claims 240W / 40 Gbps but performs poorly, the chip is lying, not WhatCable. The trust-signals card flags a small set of internal-consistency tells (zero VID, reserved bit patterns in the Cable VDO, a VID not in the USB-IF list) that often appear on counterfeit or mis-flashed cables, but those flags are hedged signals, not proof.
 - **PD spec coverage:** the decoder is aligned to USB-PD R3.2 V1.2 (March 2026). Earlier 3.0 / 3.1 cables work fine.
-- **Vendor name lookup uses a bundled database** (~13,700 USB-IF entries plus the community usb.ids list). VIDs assigned after the bundled snapshot will show as "Unregistered / unknown" and trip a trust-signal flag until the database is refreshed.
-- **macOS only.** iOS sandboxing makes USB-C e-marker access much harder.
-- **Apple Silicon only.** Intel Macs route USB-C through Intel Thunderbolt 3 controllers (Titan Ridge / JHL9580). Apple's IOKit driver for those chips does not expose the USB-PD negotiation state or the cable e-marker VDOs, so there's no path to surface the same information on Intel hardware.
-- **Not on the App Store.** App Sandbox blocks the IOKit reads we depend on.
+- **Vendor name lookup uses a bundled database** (thousands of USB-IF entries plus the community usb.ids list). VIDs assigned after the bundled snapshot will show as "Unregistered / unknown" and trip a trust-signal flag until the database is refreshed.
 
 ## Linux port
 
-[@abrauchli](https://github.com/abrauchli) built a Rust port for Linux called [usbeehive](https://github.com/abrauchli/usbeehive). Really nice work. Install it with `cargo install usbeehive`. It started life as a `whatcable` crate on crates.io before being renamed to avoid confusion with this repo. He's also working on [usbee](https://github.com/abrauchli/usbee), a GNOME UI for it (early stage, but the basics work).
+[@abrauchli](https://github.com/abrauchli) built a Rust port for Linux called [usbeehive](https://github.com/abrauchli/usbeehive). Install it with `cargo install usbeehive`. It reads from the kernel's typec sysfs interface rather than IOKit, so it's an independent implementation rather than a fork. It started life as a `whatcable` crate on crates.io before being renamed to avoid confusion with this repo. He's also working on [usbee](https://github.com/abrauchli/usbee), a GNOME UI for it (early stage, but the basics work).
 
 ## Privacy
 
@@ -182,17 +218,23 @@ WhatCable reads USB-C port state directly from IOKit on your Mac. All of that ha
 
 **Update checks:** WhatCable periodically checks the GitHub Releases API to see if a newer version is available. No personal data or hardware info is included in that request.
 
+**Diagnostic data:** Settings has an opt-in **Contribute Diagnostic Data** button. When you press it, WhatCable collects anonymised USB-C port and power IOKit details from your Mac and submits them to help improve hardware coverage. It only runs when you click it; nothing is collected or sent unless you choose to.
+
 ## Contributing
 
 Issues and PRs welcome. The code is small and tries to stay readable.
 
 **Where to start:**
 
-- [`Sources/WhatCable/ContentView.swift`](Sources/WhatCable/ContentView.swift) for the UI
-- [`Sources/WhatCableCore/PortSummary.swift`](Sources/WhatCableCore/PortSummary.swift) for the plain-English diagnostic logic
-- [`Sources/WhatCableCore/PDVDO.swift`](Sources/WhatCableCore/PDVDO.swift) for USB-PD bit decoding
-- [`Sources/WhatCableDarwinBackend/`](Sources/WhatCableDarwinBackend/) for the IOKit watchers (port state, PD identity, power sources, USB devices, Thunderbolt fabric)
-- [`Sources/WhatCableCLI/`](Sources/WhatCableCLI/) for the CLI, which shares `WhatCableCore` with the menu bar app
+| Module | Role |
+| --- | --- |
+| [`Sources/WhatCable/`](Sources/WhatCable/) | Main menu bar app UI (SwiftUI popover, settings, notifications) |
+| [`Sources/WhatCableCore/`](Sources/WhatCableCore/) | Shared diagnostic logic, PD bit decoding, text formatting |
+| [`Sources/WhatCableDarwinBackend/`](Sources/WhatCableDarwinBackend/) | IOKit watchers (port state, PD identity, power sources, USB devices, Thunderbolt fabric) |
+| [`Sources/WhatCableAppKit/`](Sources/WhatCableAppKit/) | AppKit-level window and panel management |
+| [`Sources/WhatCablePlugins/`](Sources/WhatCablePlugins/) | Pro features (power metering, licence, cable diagnostics view, liquid detection) |
+| [`Sources/WhatCableWidget/`](Sources/WhatCableWidget/) | WidgetKit extension (small/medium/large desktop widgets) |
+| [`Sources/WhatCableCLI/`](Sources/WhatCableCLI/) | CLI binary, shares Core/Backend/Plugins with the app |
 
 ### Translations
 
@@ -206,9 +248,13 @@ To add a new language:
 4. Run `plutil -lint` on your files to check for syntax errors
 5. Add the language to the picker in [`Sources/WhatCable/SettingsView.swift`](Sources/WhatCable/SettingsView.swift)
 
-### Cable reports
+### Diagnostic data
 
-If you have a cable with an e-marker, the "Report this cable" button in the app (or `whatcable --report` from the CLI) opens a pre-filled GitHub issue with the cable's fingerprint. This helps build the bundled cable database so future users see brand/model info for known cables.
+The single most helpful thing you can do is hit **Contribute Diagnostic Data** in Settings. It runs a short set of C probes that gather anonymised port and power data from your Mac, then submits the results. The whole process takes a few seconds, nothing is sent without your explicit click, and no personal information is included.
+
+More device data means better hardware coverage, fewer edge-case bugs, and more accurate diagnostics for everyone. If you have unusual hardware (docks, hubs, TB5 gear, high-wattage chargers), your report is especially valuable.
+
+Cable reports are also very welcome. If you have an e-marked cable, use the "Report this cable" button in the app (or `whatcable --report` from the CLI) to submit its fingerprint. These reports build the bundled cable database so WhatCable can show brand and model info for known cables. Every report you submit helps other users identify their cables at a glance.
 
 ## Credits
 

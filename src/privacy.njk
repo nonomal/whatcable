@@ -1,0 +1,64 @@
+---
+permalink: /privacy.html
+layout: page.njk
+title: "Privacy Policy"
+subtitle: "Last updated: 2026-05-07"
+description: "Privacy policy for WhatCable, the macOS menu bar app for USB-C cable diagnostics."
+twitterCard: summary
+---
+<p>
+  WhatCable is a small macOS menu bar app that tells you what each USB-C
+  cable plugged into your Mac can actually do. This page explains what
+  data the app handles.
+</p>
+
+<h2>What WhatCable reads</h2>
+<p>
+  WhatCable reads USB-C port state, USB-PD Discover Identity messages,
+  power source data, and Thunderbolt switch information from your Mac
+  through Apple's IOKit framework. All of this stays on your Mac. It is
+  used only to render the popover you see in the menu bar.
+</p>
+
+<h2>What WhatCable sends</h2>
+<p>
+  The Mac App Store version of WhatCable does not make any network calls
+  of its own. App Store updates are handled by macOS.
+</p>
+<p>
+  The free GitHub / Homebrew version of WhatCable checks the public
+  GitHub Releases API once every six hours to see if a newer version is
+  available. That request includes a <code>User-Agent</code> header
+  naming the app and your installed version (for example,
+  <code>WhatCable/0.8.4</code>). It does not include any personal
+  information, and no analytics, telemetry, or identifiers are sent.
+</p>
+<p>
+  If you click "Report this cable", WhatCable opens GitHub in your
+  default browser with the cable's public e-marker fields pre-filled in
+  a new issue. You review the contents and decide whether to submit it.
+  Nothing is sent automatically.
+</p>
+
+<h2>What WhatCable stores</h2>
+<p>
+  WhatCable stores your in-app preferences (display mode, hidden ports,
+  notification toggles, font size) in the standard macOS user defaults
+  system, on your Mac. Nothing else is stored.
+</p>
+
+<h2>What WhatCable does not do</h2>
+<p>WhatCable does not collect, store, or transmit:</p>
+<ul>
+  <li>Personal information (name, email, address, phone number).</li>
+  <li>Account or device identifiers.</li>
+  <li>Browsing or app usage analytics.</li>
+  <li>Information about other apps or files on your Mac.</li>
+  <li>Anything about devices connected to ports WhatCable does not need to read.</li>
+</ul>
+
+<h2>Contact</h2>
+<p>
+  Bug reports and questions go through the public GitHub repository at
+  <a href="https://github.com/darrylmorley/whatcable">github.com/darrylmorley/whatcable</a>.
+</p>

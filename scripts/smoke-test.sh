@@ -24,8 +24,8 @@ fi
 
 APP_NAME="WhatCable"
 BUNDLE_ID="uk.whatcable.whatcable"
-VERSION="0.10.8"
-BUILD_NUMBER="50"
+VERSION="0.12.4"
+BUILD_NUMBER="64"
 MIN_OS="14.0"
 CLI_PRODUCT="whatcable-cli"
 CLI_BIN_NAME="whatcable"
@@ -123,6 +123,14 @@ if [[ -d "${APP_RESOURCES_SRC}" ]]; then
     cp -R "${APP_RESOURCES_SRC}/." "${bundle_path}/"
 fi
 
+# macOS needs .lproj directories at the app bundle root to recognize
+# supported languages. The actual strings live in the SPM sub-bundles,
+# but without these markers the system won't select the right locale.
+for lproj in "${APP_RESOURCES_SRC}"/*.lproj; do
+    [[ -d "${lproj}" ]] || continue
+    mkdir -p "${RESOURCES_DIR}/$(basename "${lproj}")"
+done
+
 echo "==> Verifying universal binaries"
 lipo -archs "${MACOS_DIR}/${APP_NAME}" | sed 's/^/    app: /'
 lipo -archs "${HELPERS_DIR}/${CLI_BIN_NAME}" | sed 's/^/    cli: /'
@@ -135,6 +143,24 @@ if [[ ! -f "scripts/AppIcon.icns" ]]; then
 fi
 cp "scripts/AppIcon.icns" "${RESOURCES_DIR}/AppIcon.icns"
 
+echo "==> Building test kit probes (universal binaries)"
+PROBES_SRC_DIR="probes/test-kit"
+PROBES_DEST_DIR="${RESOURCES_DIR}/probes"
+if [[ -d "${PROBES_SRC_DIR}" ]]; then
+    mkdir -p "${PROBES_DEST_DIR}"
+    for src in "${PROBES_SRC_DIR}"/*.c; do
+        name=$(basename "${src}" .c)
+        echo "    ${name}"
+        clang -arch arm64 -arch x86_64 \
+            -framework IOKit -framework CoreFoundation \
+            -mmacosx-version-min="${MIN_OS}" \
+            -O2 -o "${PROBES_DEST_DIR}/${name}" "${src}"
+    done
+    echo "    $(ls "${PROBES_DEST_DIR}" | wc -l | tr -d ' ') probes compiled"
+else
+    echo "    WARN: ${PROBES_SRC_DIR} not found, skipping probe compilation"
+fi
+
 echo "==> Writing Info.plist"
 cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -146,8 +172,14 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
     <key>CFBundleLocalizations</key>
     <array>
         <string>en</string>
+        <string>de</string>
+        <string>es</string>
+        <string>fr</string>
+        <string>hi</string>
         <string>hy</string>
         <string>it</string>
+        <string>ja</string>
+        <string>nb</string>
         <string>pl</string>
         <string>zh-Hans</string>
     </array>
@@ -191,6 +223,15 @@ if [[ -n "${DEVELOPER_ID}" ]]; then
         --sign "${DEVELOPER_ID}" \
         "${HELPERS_DIR}/${CLI_BIN_NAME}"
 
+    if [[ -d "${RESOURCES_DIR}/probes" ]]; then
+        echo "==> Signing test kit probes with Developer ID + hardened runtime"
+        for probe in "${RESOURCES_DIR}/probes"/*; do
+            codesign --force --options runtime --timestamp \
+                --sign "${DEVELOPER_ID}" \
+                "${probe}"
+        done
+    fi
+
     echo "==> Signing widget extension with Developer ID + hardened runtime"
     # The appex must be signed with its own entitlements (app-sandbox +
     # app-group), not the host app's. Sign order matters: nested bundles
@@ -208,6 +249,12 @@ if [[ -n "${DEVELOPER_ID}" ]]; then
         "${APP_DIR}"
 else
     echo "==> Ad-hoc signing (no DEVELOPER_ID set)"
+    codesign --force --sign - "${HELPERS_DIR}/${CLI_BIN_NAME}"
+    if [[ -d "${RESOURCES_DIR}/probes" ]]; then
+        for probe in "${RESOURCES_DIR}/probes"/*; do
+            codesign --force --sign - "${probe}"
+        done
+    fi
     codesign --force --entitlements "${WIDGET_ENTITLEMENTS}" \
         --sign - "${PLUGINS_DIR}/${WIDGET_APPEX}"
     codesign --force --entitlements "${ENTITLEMENTS}" \

@@ -26,5 +26,18 @@ release-notes/
 reference/
 screenshots-pro/
 
-# IOKit investigation probes (compiled binaries and scratch output)
-probes/
+# IOKit investigation probes (compiled binaries and scratch output).
+# probes/test-kit/ contains the C sources bundled in the app and is tracked.
+probes/*
+!probes/test-kit/
+
+# Eleventy site tooling
+node_modules/
+
+# Local author crib sheet for the blog (gitignored by convention)
+BLOG.md
+
+# Decap CMS fallback media folder. The /admin uploader sends images to R2 via
+# the custom media library, but Decap still requires media_folder set. This
+# folder should never receive real files; ignore it just in case.
+src/blog/uploads/

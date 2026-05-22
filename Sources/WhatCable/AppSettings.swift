@@ -18,6 +18,7 @@ final class AppSettings: ObservableObject {
         static let showTechnicalDetails = "showTechnicalDetails"
         static let fontSize = "fontSize"
         static let preferredLanguage = "preferredLanguage"
+        static let testKitLastRunVersion = "testKitLastRunVersion"
     }
 
 
@@ -87,6 +88,11 @@ final class AppSettings: ObservableObject {
             guard fontSize != oldValue else { return }
             UserDefaults.standard.set(fontSize, forKey: Keys.fontSize)
         }
+    }
+
+    var testKitLastRunVersion: String? {
+        get { UserDefaults.standard.string(forKey: Keys.testKitLastRunVersion) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.testKitLastRunVersion) }
     }
 
     private init() {

@@ -26,38 +26,83 @@ hand-maintained markdown table; format may change once the consumer exists.
 | UGOURD TB5/USB4 cable, AliExpress (no USB-IF cert) | `0x0138` | `0x0310` | `0x000A2644` | Unregistered | none | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#71](https://github.com/darrylmorley/whatcable/issues/71) |
 | CalDigit TS5 Plus bundled TB5 cable | `0x01B6` | `0x4003` | `0x110A2644` | Unregistered | `0x303C` | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#89](https://github.com/darrylmorley/whatcable/issues/89) |
 | CalDigit TB5 cable, Amazon | `0x01B6` | `0x4003` | `0x110A2644` | Unregistered | `0x303C` | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#90](https://github.com/darrylmorley/whatcable/issues/90) |
+| HP USB-C dock (built-in cable, ~2020 era) | `0x03F0` | `0x0967` | `0x00402FB2` | HP Inc. | none | USB 3.2 Gen 2 (10 Gbps) | 3 A / 50 V (150 W) | passive | [#112](https://github.com/darrylmorley/whatcable/issues/112) |
 | Bundled in UGREEN Revodok Max 213 (U710) dock; housing marked TB4 | `0x0522` | `0x0A06` | `0x11082043` | ACON, Advanced-Connectek, Inc. | `0x939` | USB4 Gen 3 (20 / 40 Gbps) | 5 A / 20 V (100 W) | passive | [#84](https://github.com/darrylmorley/whatcable/issues/84) |
+| Apple Thunderbolt 5 cable 1 m | `0x05AC` | `0x720A` | `0x110A2644` | Apple | none | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#93](https://github.com/darrylmorley/whatcable/issues/93) |
+| Apple Thunderbolt 5 cable 1 m (model A3189) | `0x05AC` | `0x720A` | `0x110A2644` | Apple | none | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#131](https://github.com/darrylmorley/whatcable/issues/131) |
+| Apple USB-C EarPods (e-marker on built-in plug, audio accessory) | `0x05AC` | `0x110B` | `0x11000000` | Apple | none | USB 2.0 (480 Mbps) | USB default at up to 20V (~60W) | passive | [#173](https://github.com/darrylmorley/whatcable/issues/173) |
+| Apple USB-C to 3.5 mm headphone jack adapter (e-marker on built-in plug) | `0x05AC` | `0x110A` | `0x11000000` | Apple | none | USB 2.0 (480 Mbps) | USB default at up to 20V (~60W) | passive | [#175](https://github.com/darrylmorley/whatcable/issues/175) |
+| LG 27UP85NP-W monitor bundled USB-C cable (unbranded) | `0x163E` | `0x0CE9` | `0x00084841` | Huizhou Bohui Connection Technology Co., Ltd | `0x99` | USB 3.2 Gen 1 (5 Gbps) | 5 A / 20 V (100 W) | passive | [#165](https://github.com/darrylmorley/whatcable/issues/165) |
 | Anker 333 USB-C 3.3 ft nylon | `0x201C` | `0x0000` | `0x00082040` | Hongkong Freeport Electronics Co., Limited | none | USB 2.0 (480 Mbps) | 5 A / 20 V (100 W) | passive | [#60](https://github.com/darrylmorley/whatcable/issues/60) |
+| Eizo EV2740X monitor bundled cable (KVM connection) | `0x208E` | `0xC026` | `0x00084041` | Luxshare-ICT | none | USB 3.2 Gen 1 (5 Gbps) | 5 A / 20 V (100 W) | passive | [#137](https://github.com/darrylmorley/whatcable/issues/137) |
 | Monoprice Essentials USB-C 10 Gbps 0.5 m | `0x2095` | `0x004F` |  | CE LINK LIMITED | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#48](https://github.com/darrylmorley/whatcable/issues/48) |
 | delock TB3-branded cable | `0x20C2` | `0x0005` |  | Sumitomo Electric Ind., Ltd., Optical Comm. R&D Lab | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#44](https://github.com/darrylmorley/whatcable/issues/44) |
+| OWC Thunderbolt 3 cable, bundled with Mercury Elite Pro Dock | `0x20C2` | `0x0007` | `0x31082052` | Sumitomo Electric Ind., Ltd., Optical Comm. R&D Lab | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#143](https://github.com/darrylmorley/whatcable/issues/143) |
+| Generic USB-C cable used with Dell P2422HE monitor (unbranded) | `0x228A` | `0x0000` | `0x00084041` | Hotron Precision Electronic Ind. Corp. | `0x294` | USB 3.2 Gen 1 (5 Gbps) | 5 A / 20 V (100 W) | passive | [#177](https://github.com/darrylmorley/whatcable/issues/177) |
+| OnePlus SuperVOOC 10A cable (Type-C to Type-C) | `0x22D9` | `0x1428` | `0x60082A40` | GuangDong OPPO Mobile Telecommunications Corp., Ltd. | none | USB 2.0（480 Mbps） | 5 A / 30 V (150 W) | passive | [#148](https://github.com/darrylmorley/whatcable/issues/148) |
+| CUKTECH CTC615N 6A 240 W 1.5 m, USB-IF certified | `0x2B01` | `0x4051` | `0x000A4640` | Zimi Corporation | `0x9DC` | USB 2.0 (480 Mbps) | 5 A / 50 V (250 W) | passive | [#138](https://github.com/darrylmorley/whatcable/issues/138) |
 | CalDigit TS4 dock bundled cable (likely) | `0x2B1D` | `0x1512` | `0x11082043` | Lintes Technology Co., Ltd. | none | USB4 Gen 3 (20 / 40 Gbps) | 5 A / 20 V (100 W) | passive | [#62](https://github.com/darrylmorley/whatcable/issues/62) |
+| Cable Matters Thunderbolt 5 cable 1 m | `0x2B1D` | `0x1533` | `0x110A2644` | Lintes Technology Co., Ltd. | `0x5F5` | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#110](https://github.com/darrylmorley/whatcable/issues/110) |
+| CalDigit 2 m TB4 active cable | `0x2B1D` | `0x1901` | `0x3208485A` | Lintes Technology Co., Ltd. | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#111](https://github.com/darrylmorley/whatcable/issues/111) |
+| AGFINEST / ULT-unite TB5-class USB4 80 Gbps cable, 3.94 ft (no USB-IF cert) | `0x2BD3` | `0x0000` | `0x000A4644` | Dongguan ULT-unite Electronic Technology Co., LTD | none | USB4 Gen 4 (80 Gbps, Thunderbolt 5 class) | 5 A / 50 V (250 W) | passive | [#151](https://github.com/darrylmorley/whatcable/issues/151) |
+| Baseus Pudding Series 100 W 1.2 m | `0x2E87` | `0x0000` | `0x00082040` | Shenzhen Injoinic Technology Co., Ltd. | none | USB 2.0 (480 Mbps) | 5 A / 20 V (100 W) | passive | [#167](https://github.com/darrylmorley/whatcable/issues/167) |
+| CUKTECH PB200N powerbank built-in cable | `0x2E87` | `0x0000` | `0x00082040` | Shenzhen Injoinic Technology Co., Ltd. | none | USB 2.0 (480 Mbps) | 5 A / 20 V (100 W) | passive | [#168](https://github.com/darrylmorley/whatcable/issues/168) |
 | Dbilida TB4-branded 240 W cable, Amazon (no USB-IF cert) | `0x2E99` | `0x0000` |  | Hynetek Semiconductor Co., Ltd | none | USB4 Gen 3 (20 / 40 Gbps) | 5 A / 50 V (250 W) | passive | [#49](https://github.com/darrylmorley/whatcable/issues/49) |
+| Anker PowerLine III Flow 100 W 1.8 m, Amazon | `0x2E99` | `0x0000` | `0x00084040` | Hynetek Semiconductor Co., Ltd | `0x1514` | USB 2.0 (480 Mbps) | 5 A / 20 V (100 W) | passive | [#152](https://github.com/darrylmorley/whatcable/issues/152) |
+| Satechi Thunderbolt 5 cable 1 m | `0x310E` | `0x4000` | `0x110A2644` | Sariana LLC (dba SATECHI) | `0x5F5` | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#109](https://github.com/darrylmorley/whatcable/issues/109) |
 | acasis cable bundled with TBU405M1 enclosure | `0x315C` | `0x0000` |  | Chengdu Convenientpower Semiconductor Co., LTD | none | USB4 Gen 3 (20 / 40 Gbps) | 5 A / 20 V (100 W) | passive | [#45](https://github.com/darrylmorley/whatcable/issues/45) |
+| PX 1 m USB4 40 Gbps cable (local brand, likely ODM) | `0x315C` | `0x0000` | `0x000A2643` | Chengdu Convenientpower Semiconductor Co., LTD | none | USB4 Gen 3 (40 Gbps, Thunderbolt 4 class) | 5 A / 50 V (250 W) | passive | [#144](https://github.com/darrylmorley/whatcable/issues/144) |
+| Generic AliExpress TB4-branded cable (Chengdu Convenientpower silicon, no USB-IF cert) | `0x315C` | `0x0000` | `0x000A4843` | Chengdu Convenientpower Semiconductor Co., LTD | none | USB4 Gen 3 (40 Gbps, Thunderbolt 4 class) | 5 A / 20 V (100 W) | passive | [#169](https://github.com/darrylmorley/whatcable/issues/169) |
+| Orico USB4 Gen 3 / Thunderbolt 4 class cable, USB-IF certified | `0x34BD` | `0x0000` | `0x45082043` | Shenzhen Orico Technologies Co., Ltd | `0x10536` | USB4 Gen 3 (40 Gbps, clase Thunderbolt 4) | 5 A / 20 V (100 W) | passive | [#162](https://github.com/darrylmorley/whatcable/issues/162) |
+| Silkland USB4 80 Gbps cable 3.3 ft, Amazon | `0x3678` | `0x0000` | `0x000A2644` | (Silkland) Shenzhen Guanhai Technology Co., Ltd. | none | USB4 Gen 4 (80 Gbps) | 5 A / 50 V (250 W) | passive | [#98](https://github.com/darrylmorley/whatcable/issues/98) |
+| CANDYSIGN MagTie 100W USB-C cable | `0x36E9` | `0x3000` | `0x140A4040` | ifanr Inc. | `0x15141` | USB 2.0 (480 Mbps) | 5 A / 20 V (100 W) | passive | [#113](https://github.com/darrylmorley/whatcable/issues/113) |
+| Possibly Logitech BRIO webcam cable (reporter unsure) | `0x6666` | `0x0000` | `0x00084042` | Unregistered | `0x52C` | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#99](https://github.com/darrylmorley/whatcable/issues/99) |
 | CUKTECH No.6 140 W (e-marker present but VID/PID/speed all zeroed) | `0x0000` | `0x0000` |  | (zeroed) | none | (none advertised) | (not advertised) | passive | [#61](https://github.com/darrylmorley/whatcable/issues/61) |
 | vorodcip generic USB-C cable, Amazon Japan (VID/PID zeroed) | `0x0000` | `0x0000` | `0x000A6642` | (zeroed) | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 50 V (250 W) | passive | [#91](https://github.com/darrylmorley/whatcable/issues/91) |
 | Dockcase 100 W 10 Gbps 0.5 m (VID/PID zeroed) | `0x0000` | `0x0000` | `0x00082042` | (zeroed) | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#92](https://github.com/darrylmorley/whatcable/issues/92) |
+| Aulumu M07 (VID/PID zeroed) | `0x0000` | `0x0000` | `0x000A4642` | (zeroed) | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 50 V (250 W) | passive | [#108](https://github.com/darrylmorley/whatcable/issues/108) |
+| Lindy Anthra Line USB 3.2 Gen 2x2 1 m (Part No. 36901), Amazon Italy | `0x0000` | `0x0000` | `0x00082052` | (zeroed) | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#116](https://github.com/darrylmorley/whatcable/issues/116) |
+| UGreen Revodok 9-in-1 USB-C hub cable, Amazon France | `0x0000` | `0x0000` | `0x00084841` | (zeroed) | none | USB 3.2 Gen 1 (5 Gbps) | 5 A / 20 V (100 W) | passive | [#126](https://github.com/darrylmorley/whatcable/issues/126) |
+| Vorodcip generic USB-C cable, Amazon Italy (VID/PID zeroed) | `0x0000` | `0x0000` | `0x000A6642` | (zeroed) | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 50 V (250 W) | passive | [#132](https://github.com/darrylmorley/whatcable/issues/132) |
+| INIU 100W USB-C cable (VID/PID zeroed) | `0x0000` | `0x0000` | `0x00082042` | (zeroed) | none | USB 3.2 Gen 2 (10 Gbps) | 5 A / 20 V (100 W) | passive | [#134](https://github.com/darrylmorley/whatcable/issues/134) |
+| Anker braided cable, bundled with 140W adapter | `0x0000` | `0x0000` |  | (zeroed) | none | (none advertised) | (not advertised) | passive | [#136](https://github.com/darrylmorley/whatcable/issues/136) |
+| OnePlus 8T original USB-C cable (e-marker present, no PD Discover Identity response) | `0x0000` | `0x0000` |  | (zeroed) | none | (none advertised) | (not advertised) | passive | [#156](https://github.com/darrylmorley/whatcable/issues/156) |
+| SUNGUY 30 cm USB-C cable, Amazon Italy (rated 60 W) | `0x0000` | `0x0000` |  | (zeroed) | none | (none advertised) | (not advertised) | passive | [#158](https://github.com/darrylmorley/whatcable/issues/158) |
+| Anker Zolo 240 W 3 ft (A8060) (VID/PID zeroed; Cable VDO encodes 250 W EPR) | `0x0000` | `0x0000` | `0x000A2640` | (zeroed) | none | USB 2.0 (480 Mbps) | 5 A / 50 V (250 W) | passive | [#166](https://github.com/darrylmorley/whatcable/issues/166) |
+| Anker USB-C cable, model not provided (e-marker present, no PD Discover Identity response) | `0x0000` | `0x0000` |  | (zeroed) | none | (none advertised) | (not advertised) | passive | [#170](https://github.com/darrylmorley/whatcable/issues/170) |
 
 Sorted by VID. The zeroed-fingerprint entry is parked at the bottom because it
 is identity-less.
 
 ## Patterns worth flagging for trust-signals work
 
-Three of the nine reports show patterns that the planned Cable Trust Signals
-heuristics should pick up:
+Patterns the planned Cable Trust Signals heuristics should pick up:
 
 1. **Marketing claim outpaces e-marker capability.** #49 (Dbilida) is sold as
    "Thunderbolt 4 / 40 Gbps / 240 W" but the e-marker reports passive USB4
-   Gen 3 with no USB-IF cert. The cable may carry the advertised data rate,
-   but there is no cert backing the claim.
-2. **Genuinely unregistered VID with no XID.** #71 (UGOURD AliExpress) reports
-   80 Gbps USB4 Gen 4 from an unregistered VID and zero XID. Plausibly real
-   silicon, but unverifiable from the e-marker alone.
-3. **Zeroed identity fields.** #61 (CUKTECH No.6) has a present e-marker that
-   reports `0x0000` for VID, PID, and no speed. Already flagged by trust
-   signals today; the report confirms the pattern is real and not a parser
-   bug.
-
-The other six reports describe cables whose e-marker matches their marketing.
+   Gen 3 with no USB-IF cert. #169 (generic AliExpress TB4 cable) reports
+   USB4 Gen 3 TB4 class with no XID despite being sold with TB4 logos on
+   both plugs. The cables may carry the advertised data rate, but there is
+   no cert backing the claim.
+2. **Genuinely unregistered VID with no XID.** #71 (UGOURD AliExpress) and
+   #151 (AGFINEST / ULT-unite) both report 80 Gbps USB4 Gen 4 from an
+   unregistered VID and zero XID. Plausibly real silicon, but unverifiable
+   from the e-marker alone.
+3. **Zeroed identity fields.** Now a common pattern across budget and even
+   major-brand cables. First seen in #61 (CUKTECH No.6) with no VDO at all,
+   then in many cables that report a power-class Cable VDO but zeroed
+   VID/PID (#91, #92, #108, #116, #126, #132, #134, #136, #156, #158, #166,
+   #170). Worth distinguishing the truly identity-less subset (no VDO at
+   all) from the cables that publish power data but not vendor identity.
+4. **Shared ODM silicon across brands.** Multiple cables with different
+   brand labels report the same VID + Cable VDO, indicating they share
+   e-marker silicon from a common ODM. Examples so far: Chengdu
+   Convenientpower (`0x315C`) across acasis #45, PX #144, and the
+   AliExpress TB4 cable in #169; Shenzhen Injoinic (`0x2E87`) across
+   Baseus Pudding 100 W (#167) and CUKTECH PB200N powerbank built-in
+   cable (#168). Same silicon, same VDO, different brand labels. Trust
+   signals should treat these as one supplier's hardware, not as
+   independent vendor diversity.
 
 ## Adding new entries
 

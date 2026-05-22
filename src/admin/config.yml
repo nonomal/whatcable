@@ -1,0 +1,84 @@
+# Decap CMS configuration for the WhatCable blog.
+#
+# Auth: a fine-grained GitHub PAT scoped to darrylmorley/whatcable-app is
+# stashed in localStorage by the shim in index.html. Decap's GitHub backend
+# reads it from there and uses it for all commits / PRs.
+#
+# Drafts use editorial_workflow: Decap creates a branch like
+# `cms/posts/<slug>` and opens a draft PR. Drafts stay on the private repo
+# until merged to main (mirror only fires on main pushes).
+
+backend:
+  name: github
+  repo: darrylmorley/whatcable-app
+  branch: main
+
+publish_mode: editorial_workflow
+
+# Required by Decap even when a custom media_library is in use. If the custom
+# media library ever fails to load, Decap will commit images to this folder
+# via the GitHub API on a branch (so the local .gitignore won't help). If you
+# ever see files appear in src/blog/uploads/ on a `cms/posts/*` branch, the
+# custom uploader has broken and needs investigating.
+media_folder: "src/blog/uploads"
+public_folder: "/blog/uploads"
+
+# Custom media library: every image upload goes through the Cloudflare Worker
+# to the R2 `images` bucket. See src/admin/index.html for the plugin.
+media_library:
+  name: r2-uploader
+
+site_url: https://whatcable.uk
+display_url: https://whatcable.uk
+logo_url: https://whatcable.uk/icon.png
+
+collections:
+  - name: posts
+    label: Blog posts
+    label_singular: Post
+    description: WhatCable blog posts. Drafts open a PR; merging publishes via the mirror.
+    folder: "src/blog/posts"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{fields.slug}}"
+    extension: md
+    format: yaml-frontmatter
+    summary: "{{title}} ({{commit_date | date('YYYY-MM-DD')}})"
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Slug", name: "slug", widget: "string", hint: "Lowercase, hyphen-separated. Used in the URL and filename." }
+      - label: "Publish date"
+        name: "date"
+        widget: "datetime"
+        default: "{{now}}"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+        format: "YYYY-MM-DD"
+        hint: "Date the post goes live. Used in the URL and shown on the post page."
+      - { label: "Summary", name: "summary", widget: "string", hint: "One sentence shown in post lists and the RSS feed." }
+      - label: "Category"
+        name: "category"
+        widget: "select"
+        default: "Notes"
+        options:
+          - "Releases"
+          - "Deep dives"
+          - "Investigations"
+          - "Guides"
+          - "Notes"
+      - label: "Tags"
+        name: "tags"
+        widget: "list"
+        required: false
+        default: []
+        hint: "Lowercase, one per line."
+      - { label: "Body", name: "body", widget: "markdown" }
+      - label: "FAQs"
+        name: "faqs"
+        widget: "list"
+        required: false
+        collapsed: true
+        summary: "{{fields.q}}"
+        hint: "Optional Q&A pairs. Shown as a section below the post and exposed as FAQPage JSON-LD schema for search engines and AI assistants."
+        fields:
+          - { label: "Question", name: "q", widget: "string" }
+          - { label: "Answer", name: "a", widget: "markdown" }

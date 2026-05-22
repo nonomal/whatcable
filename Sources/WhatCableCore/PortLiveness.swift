@@ -6,7 +6,7 @@ import Foundation
 ///
 /// Why this helper exists:
 ///
-/// - `USBCPort.connectionActive` lingers `true` for several seconds after
+/// - `AppleHPMInterface.connectionActive` lingers `true` for several seconds after
 ///   unplug on MagSafe (`AppleHPMInterfaceType11`), so we can't trust it
 ///   alone there.
 /// - The power source watcher caches the last negotiated PDO, so a port
@@ -18,9 +18,9 @@ import Foundation
 /// caching. The port-level `connectionActive` flag is trusted on
 /// non-MagSafe. Power sources need corroboration before they count.
 public func isPortLive(
-    port: USBCPort,
+    port: AppleHPMInterface,
     powerSources: [PowerSource],
-    identities: [PDIdentity],
+    identities: [USBPDSOP],
     matchingDevices: [USBDevice]
 ) -> Bool {
     if !matchingDevices.isEmpty { return true }

@@ -1,0 +1,89 @@
+---
+layout: base.njk
+ogType: article
+---
+<main>
+  <div class="wrap">
+    <p class="subtitle">
+      <a href="/blog">← Back to blog</a>
+      {% if category %} &nbsp;·&nbsp; <span>{{ category }}</span>{% endif %}
+    </p>
+    <h1>{{ title }}</h1>
+    <p class="subtitle">
+      <time datetime="{{ page.date | isoDate }}">{{ page.date | readableDate }}</time>
+      {% if tags and tags.length > 1 %}
+        &nbsp;·&nbsp;
+        {% for t in tags %}{% if t != 'posts' %}<a href="/blog/tag/{{ t | slug }}">#{{ t }}</a> {% endif %}{% endfor %}
+      {% endif %}
+    </p>
+    <article class="post-body">
+      {{ content | safe }}
+    </article>
+
+    {% if faqs and faqs.length > 0 %}
+    <section class="faq-section" aria-labelledby="faq-heading">
+      <h2 id="faq-heading">Frequently asked questions</h2>
+      {% for faq in faqs %}
+      <details class="faq-item">
+        <summary>{{ faq.q }}</summary>
+        <div class="faq-answer">{{ faq.a | markdownify | safe }}</div>
+      </details>
+      {% endfor %}
+    </section>
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+{%- for faq in faqs %}
+    {
+      "@type": "Question",
+      "name": {{ faq.q | dump | safe }},
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ (faq.a | markdownify | jsonLdSafe) | dump | safe }}
+      }
+    }{% if not loop.last %},{% endif %}
+{%- endfor %}
+  ]
+}
+    </script>
+    {% endif %}
+
+    <hr>
+    <p class="subtitle">
+      Have a cable that doesn't behave the way you'd expect?
+      <a href="https://github.com/darrylmorley/whatcable/issues/new?template=cable-report.md">Report it on GitHub</a>
+      or <a href="/cables">browse the cable database</a>.
+    </p>
+  </div>
+</main>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": {{ title | dump | safe }},
+  "description": {{ (summary or "") | dump | safe }},
+  "url": "{{ site.url }}{{ page.url | cleanUrl }}",
+  "datePublished": {{ page.date | isoDate | dump | safe }},
+  "dateModified": {{ page.date | isoDate | dump | safe }},
+  "author": {
+    "@type": "Person",
+    "name": {{ site.author.name | dump | safe }},
+    "url": {{ site.author.url | dump | safe }}
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": {{ site.name | dump | safe }},
+    "url": {{ site.url | dump | safe }},
+    "logo": {
+      "@type": "ImageObject",
+      "url": "{{ site.url }}/icon.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ site.url }}{{ page.url | cleanUrl }}"
+  }
+}
+</script>

@@ -2,7 +2,7 @@ import Foundation
 import IOKit
 import WhatCableCore
 
-/// Read-only IOKit walker that dumps the IOThunderboltSwitch tree as plain
+/// Read-only IOKit walker that dumps the IOIOThunderboltSwitch tree as plain
 /// text. Used by `whatcable --tb-debug` to gather field shapes from real
 /// Thunderbolt hardware so we can design the rendering layer with evidence
 /// rather than guesses. No interpretation, no rendering, just a paste-ready
@@ -15,9 +15,9 @@ public enum ThunderboltProbe {
         output += "# Generated \(ISO8601DateFormatter().string(from: Date()))\n"
         output += "\n"
 
-        // IOThunderboltSwitch is the abstract parent class. Matching against it
-        // catches all subclass variants (IOThunderboltSwitchType7, USB4, etc.).
-        let matching = IOServiceMatching("IOThunderboltSwitch")
+        // IOIOThunderboltSwitch is the abstract parent class. Matching against it
+        // catches all subclass variants (IOIOThunderboltSwitchType7, USB4, etc.).
+        let matching = IOServiceMatching("IOIOThunderboltSwitch")
         var iter: io_iterator_t = 0
         let kr = IOServiceGetMatchingServices(kIOMainPortDefault, matching, &iter)
         guard kr == KERN_SUCCESS else {
@@ -35,7 +35,7 @@ public enum ThunderboltProbe {
         }
 
         if switchCount == 0 {
-            output += "No IOThunderboltSwitch services found.\n"
+            output += "No IOIOThunderboltSwitch services found.\n"
             output += "(This is unexpected on Apple Silicon — please flag in the issue.)\n"
         } else {
             output += "# \(switchCount) switch(es) total\n"
@@ -65,7 +65,7 @@ public enum ThunderboltProbe {
         while case let child = IOIteratorNext(childIter), child != 0 {
             defer { IOObjectRelease(child) }
             let childClass = ioClassName(child) ?? "<unknown>"
-            // Filter to IOThunderboltPort and its subclasses. Skip the adapter
+            // Filter to IOIOThunderboltPort and its subclasses. Skip the adapter
             // children (AppleThunderboltUSBDownAdapter etc.) — they're driver
             // matches, not link-state carriers.
             guard childClass.contains("Port") else { continue }

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>WhatCable Admin</title>
+</head>
+<body>
+<script>
+// WhatCable admin: Decap CMS loader + PAT shim + R2 media uploader.
+//
+// Decap doesn't natively support fine-grained GitHub PATs as its auth mode.
+// The shim below prompts on first visit for a PAT, validates it against the
+// GitHub user endpoint, and stores the user object under the localStorage key
+// Decap reads from (`decap-cms-user`). Decap's GitHub backend then uses that
+// token for all subsequent API calls (commit, branch, PR).
+//
+// Image uploads use the custom media library registered below, which POSTs
+// the file to /api/media/upload (Cloudflare Worker) and inserts the returned
+// public R2 URL into the markdown body.
+
+(function () {
+  const STORAGE_KEY = 'decap-cms-user';
+  const DECAP_SRC = 'https://unpkg.com/decap-cms@3.12.2/dist/decap-cms.js';
+  const DECAP_SRI = 'sha384-Vwwn7nyPZTJRhuncX5Dci57xwjBjzTzQLSJefKuvOaT3x952fh4vT96UuHDi34zb';
+  // Relative URL: same origin as /admin (whatcable.uk), so no CORS preflight.
+  const UPLOAD_ENDPOINT = '/api/media/upload';
+  const ALLOWED_TYPES = 'image/png,image/jpeg,image/gif,image/webp,image/avif,image/svg+xml';
+
+  function showMessage(text) {
+    // Plain-text DOM construction (no innerHTML) to keep this XSS-free.
+    while (document.body.firstChild) document.body.removeChild(document.body.firstChild);
+
+    const wrap = document.createElement('div');
+    wrap.style.fontFamily = 'system-ui, sans-serif';
+    wrap.style.padding = '2rem';
+    wrap.style.maxWidth = '42rem';
+    wrap.style.lineHeight = '1.5';
+
+    const h1 = document.createElement('h1');
+    h1.style.fontSize = '1.25rem';
+    h1.style.margin = '0 0 1rem';
+    h1.textContent = 'WhatCable admin';
+
+    const p1 = document.createElement('p');
+    p1.textContent = text;
+
+    const p2 = document.createElement('p');
+    const link = document.createElement('a');
+    link.href = '';
+    link.textContent = 'Reload';
+    p2.appendChild(link);
+    p2.appendChild(document.createTextNode(' to try again.'));
+
+    wrap.appendChild(h1);
+    wrap.appendChild(p1);
+    wrap.appendChild(p2);
+    document.body.appendChild(wrap);
+  }
+
+  async function promptAndStore() {
+    const pat = window.prompt(
+      'Paste your GitHub fine-grained personal access token.\n\n' +
+      'It must be scoped to darrylmorley/whatcable-app and have Contents: R/W and Pull requests: R/W.'
+    );
+    if (!pat) {
+      showMessage('Sign-in cancelled.');
+      return false;
+    }
+
+    let user;
+    try {
+      const res = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: 'token ' + pat,
+          Accept: 'application/vnd.github+json',
+        },
+      });
+      if (!res.ok) {
+        throw new Error('GitHub rejected the token (HTTP ' + res.status + ').');
+      }
+      user = await res.json();
+    } catch (err) {
+      showMessage('Sign-in failed: ' + (err && err.message ? err.message : err) + '.');
+      return false;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      token: pat,
+      backendName: 'github',
+      login: user.login,
+      name: user.name || user.login,
+      avatar_url: user.avatar_url,
+    }));
+    // Reload so Decap initialises with a populated user object.
+    location.reload();
+    return true;
+  }
+
+  function loadDecap() {
+    // Manual init lets us register the custom media library before Decap starts.
+    window.CMS_MANUAL_INIT = true;
+
+    const s = document.createElement('script');
+    s.src = DECAP_SRC;
+    s.integrity = DECAP_SRI;
+    s.crossOrigin = 'anonymous';
+    s.onload = function () {
+      try {
+        registerMediaLibrary();
+        registerPreviewStyle();
+        registerPreviewTemplate();
+      } catch (err) {
+        console.error('Failed to register Decap plugins', err);
+      }
+      window.CMS.init();
+    };
+    s.onerror = function () {
+      showMessage('Could not load the Decap CMS script. Check your network and try again.');
+    };
+    document.body.appendChild(s);
+  }
+
+  function registerPreviewStyle() {
+    // Loads /admin/preview.css into the preview iframe so the right-hand
+    // pane shows the post in the live site's typography and FAQ styling.
+    window.CMS.registerPreviewStyle('/admin/preview.css');
+  }
+
+  function registerPreviewTemplate() {
+    // Custom preview for the `posts` collection. Renders the title, summary,
+    // the body field (Markdown rendered to HTML by Decap), and any FAQs as
+    // expanded <details> cards so the author can see all answer text at once.
+    //
+    // `h` is preact's createElement, exposed on window by the Decap bundle.
+    const h = window.h;
+
+    function PostPreview(props) {
+      const entry = props.entry;
+      const widgetFor = props.widgetFor;
+      const widgetsFor = props.widgetsFor;
+
+      const title = entry.getIn(['data', 'title']) || 'Untitled';
+      const summary = entry.getIn(['data', 'summary']) || '';
+      const faqs = widgetsFor('faqs');
+
+      const children = [
+        h('h1', null, title),
+        summary ? h('p', { className: 'subtitle' }, summary) : null,
+        h('article', { className: 'post-body' }, widgetFor('body')),
+      ];
+
+      if (faqs && typeof faqs.size === 'number' && faqs.size > 0) {
+        const faqItems = [h('h2', null, 'Frequently asked questions')];
+        faqs.toArray().forEach(function (faq, i) {
+          const q = faq.getIn(['data', 'q']) || '';
+          const a = faq.getIn(['widgets', 'a']);
+          faqItems.push(
+            h('details', { className: 'faq-item', open: true, key: 'faq-' + i },
+              h('summary', null, q || '(question)'),
+              h('div', { className: 'faq-answer' }, a)
+            )
+          );
+        });
+        children.push(h('section', { className: 'faq-section' }, faqItems));
+      }
+
+      return h('div', { className: 'preview-wrap' }, children);
+    }
+
+    window.CMS.registerPreviewTemplate('posts', PostPreview);
+  }
+
+  function registerMediaLibrary() {
+    window.CMS.registerMediaLibrary({
+      name: 'r2-uploader',
+      init: function (_a) {
+        const handleInsert = _a && _a.handleInsert;
+        return {
+          show: async function () {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = ALLOWED_TYPES;
+            input.style.display = 'none';
+            document.body.appendChild(input);
+
+            const file = await new Promise(function (resolve) {
+              input.onchange = function () {
+                resolve(input.files && input.files[0]);
+              };
+              // If the user closes the picker without choosing, we leak the
+              // input node. Acceptable for an admin-only page.
+              input.click();
+            });
+            input.remove();
+            if (!file) return;
+
+            const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            if (!stored.token) {
+              window.alert('No GitHub token in storage. Reload the page to sign in again.');
+              return;
+            }
+
+            const fd = new FormData();
+            fd.append('file', file);
+
+            try {
+              const res = await fetch(UPLOAD_ENDPOINT, {
+                method: 'POST',
+                headers: { Authorization: 'token ' + stored.token },
+                body: fd,
+              });
+              const data = await res.json().catch(function () { return {}; });
+              if (!res.ok) {
+                throw new Error(data.error || ('Upload failed (HTTP ' + res.status + ').'));
+              }
+              if (typeof handleInsert === 'function') {
+                handleInsert(data.url);
+              } else {
+                window.alert('Uploaded, but no insert handler. URL: ' + data.url);
+              }
+            } catch (err) {
+              window.alert('Image upload failed: ' + (err && err.message ? err.message : err));
+            }
+          },
+          // Decap calls these four methods on a registered media library.
+          // Without them the runtime throws "not a function" when it tries
+          // to close the picker or handle widget-level clear/remove, which
+          // silently breaks the image insert flow.
+          enableStandalone: function () { return false; },
+          hide: function () {},
+          onClearControl: function () {},
+          onRemoveControl: function () {},
+        };
+      },
+    });
+  }
+
+  // Entry point.
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    promptAndStore();
+  } else {
+    loadDecap();
+  }
+})();
+</script>
+</body>
+</html>
